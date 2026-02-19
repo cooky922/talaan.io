@@ -20,7 +20,7 @@ from PyQt6.QtCore import (
     pyqtSignal, 
     pyqtSlot
 )
-from PyQt6.QtGui import QIcon, QColor 
+from PyQt6.QtGui import QColor 
 
 from src.model.database import StudentDatabase, ProgramDatabase, CollegeDatabase
 from src.utils.constants import Constants
@@ -219,9 +219,17 @@ class ToolBar(QWidget):
         self.search_bar.textChanged.connect(handle_text_change)
         self.search_bar.addAction(IconLoader.get('search-dark'), QLineEdit.ActionPosition.LeadingPosition)
 
+        self.edit_button = QPushButton(' Edit')
+        self.edit_button.setIcon(IconLoader.get('edit-light'))
+        self.edit_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
+        self.edit_button.setCursor(Qt.CursorShape.PointingHandCursor)
+
         # Structure
         layout.addSpacing(15)
-        layout.addWidget(self.search_bar, alignment = Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.search_bar)
+        layout.addStretch()
+        layout.addWidget(self.edit_button, alignment = Qt.AlignmentFlag.AlignRight)
+        layout.addSpacing(15)
 
 class FootBar(QWidget):
     def __init__(self):
@@ -259,7 +267,7 @@ class TableCard(Card):
 
         # Layout
         table_layout.addSpacing(10)
-        table_layout.addWidget(self.tool_bar, alignment=Qt.AlignmentFlag.AlignLeft)
+        table_layout.addWidget(self.tool_bar)
         table_layout.addWidget(self.table_view)
         table_layout.addWidget(self.foot_bar)
         table_layout.addSpacing(10)
@@ -328,3 +336,7 @@ class WorkingPage(QWidget):
     def set_role(self, role : UserRole):
         self.role = role
         self.header.role_label.setText(role.value)
+        if role == UserRole.Admin:
+            self.table_card.tool_bar.edit_button.show()
+        elif role == UserRole.Viewer:
+            self.table_card.tool_bar.edit_button.hide()
