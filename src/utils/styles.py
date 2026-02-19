@@ -170,7 +170,7 @@ class Styles:
                 color: black;
                 border: 1px solid #cccccc;
                 border-radius: 15px;
-                padding: 5px 15px;
+                padding: 8px 15px;
             }}
             QLineEdit:focus {{
                 border: 1px solid #93a846; /* Highlight color when typing */
@@ -218,7 +218,7 @@ class Styles:
             text-align: left;
             color: #666666;
         }}
-        
+
         /* The tiny square where horizontal and vertical headers meet (if visible) */
         QTableCornerButton::section {{
             background-color: transparent;

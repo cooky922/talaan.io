@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
+    QHeaderView,
     QLineEdit,
     QPushButton,
     QSizePolicy,
@@ -24,6 +25,7 @@ from PyQt6.QtGui import QIcon, QColor
 from src.model.database import StudentDatabase, ProgramDatabase, CollegeDatabase
 from src.utils.constants import Constants
 from src.utils.styles import Styles
+from src.utils.icon_loader import IconLoader
 
 from src.view.components import TitleLabel, InfoLabel, ToggleBox, Card
 from src.view.ui.login_page import UserRole
@@ -136,6 +138,28 @@ class RowHoverDelegate(QStyledItemDelegate):
         # Tell Qt to draw the normal text/content over our new background
         super().paint(painter, option, index)
 
+class TableHeader(QHeaderView):
+    def paintSection(self, painter, rect, logicalIndex):
+        # 1. Let Qt draw the normal header first (Text, Background, and our new SVG Arrows)
+        super().paintSection(painter, rect, logicalIndex)
+
+        # 2. Draw our custom "floating" separator!
+        # We skip the very last column so there isn't a line at the far right edge.
+        if logicalIndex < self.count() - 1:
+            painter.save()
+            pen = painter.pen()
+            pen.setColor(QColor("#dddddd")) # Light gray line
+            pen.setWidth(2)
+            painter.setPen(pen)
+
+            x = rect.right()
+            y_top = rect.top() + 15
+            y_bottom = rect.bottom() - 15
+            
+            # Draw the line
+            painter.drawLine(x, y_top, x, y_bottom)
+            painter.restore()
+
 class Table(QWidget):
     def __init__(self):
         super().__init__()
@@ -152,12 +176,18 @@ class Table(QWidget):
         self.proxy_model.setFilterKeyColumn(-1)
         
         self.table = QTableView()
+
         self.hover_delegate = RowHoverDelegate(self.table)
+        custom_header = TableHeader(Qt.Orientation.Horizontal, self.table)
+        self.table.setHorizontalHeader(custom_header)
+
         self.table.setItemDelegate(self.hover_delegate)
         self.table.setStyleSheet(Styles.table())
         self.table.setModel(self.proxy_model)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.table.setSortingEnabled(True)
+        custom_header.setSectionsClickable(True)
+        custom_header.setSortIndicatorShown(True)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.setShowGrid(False)
@@ -167,7 +197,8 @@ class Table(QWidget):
         layout.addWidget(self.table)
 
         self.table.resizeColumnsToContents()
-        self.table.horizontalHeader().setStretchLastSection(True)
+        custom_header.setStretchLastSection(True)
+        self.table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
 class ToolBar(QWidget):
     def __init__(self, handle_text_change):
@@ -186,6 +217,7 @@ class ToolBar(QWidget):
         self.search_bar.setFixedWidth(300)
         self.search_bar.setClearButtonEnabled(True)
         self.search_bar.textChanged.connect(handle_text_change)
+        self.search_bar.addAction(IconLoader.get('search-dark'), QLineEdit.ActionPosition.LeadingPosition)
 
         # Structure
         layout.addSpacing(15)

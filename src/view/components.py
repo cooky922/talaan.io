@@ -52,7 +52,7 @@ class ToggleBox(QWidget):
 
         for i, text in enumerate(options):
             btn = QPushButton() if mini else QToolButton()
-            btn.setText(text)
+            btn.setText(' ' + text if mini else text)
 
             # Icon Group
             toggleable_icon = QIcon()
