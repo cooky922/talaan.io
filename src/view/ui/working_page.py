@@ -139,6 +139,32 @@ class RowHoverDelegate(QStyledItemDelegate):
         super().paint(painter, option, index)
 
 class TableHeader(QHeaderView):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.setMouseTracking(True)
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        logical_index = self.logicalIndexAt(event.pos())
+        if logical_index == -1:
+            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+            return
+        x = event.pos().x()
+        left_edge = self.sectionViewportPosition(logical_index)
+        right_edge = left_edge + self.sectionSize(logical_index)
+        
+        on_left_divider = (x - left_edge) <= 5 and logical_index > 0
+        on_right_divider = (right_edge - x) <= 5 and logical_index < self.count() - 1
+        
+        if on_left_divider or on_right_divider:
+            self.viewport().setCursor(Qt.CursorShape.SplitHCursor)
+        else:
+            self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+
     def paintSection(self, painter, rect, logicalIndex):
         super().paintSection(painter, rect, logicalIndex)
         painter.save()
@@ -190,6 +216,7 @@ class Table(QWidget):
 
         self.hover_delegate = RowHoverDelegate(self.table)
         self.custom_header = TableHeader(Qt.Orientation.Horizontal, self.table)
+        # self.custom_header.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
         self.table.setHorizontalHeader(self.custom_header)
 
         self.table.setItemDelegate(self.hover_delegate)
@@ -212,8 +239,11 @@ class Table(QWidget):
 
 
 class ToolBar(QWidget):
+    edit_mode_toggled = pyqtSignal(bool)
+
     def __init__(self):
         super().__init__()
+        self.is_edit_mode = False
         
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -229,17 +259,40 @@ class ToolBar(QWidget):
         self.search_bar.setClearButtonEnabled(True)
         self.search_bar.addAction(IconLoader.get('search-dark'), QLineEdit.ActionPosition.LeadingPosition)
 
+        self.add_button = QPushButton(' Add')
+        self.add_button.setIcon(IconLoader.get('add-light'))
+        self.add_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
+        self.add_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.add_button.hide()
+
         self.edit_button = QPushButton(' Edit')
         self.edit_button.setIcon(IconLoader.get('edit-light'))
         self.edit_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
         self.edit_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
+        self.edit_button.clicked.connect(self.toggle_mode)
+
         # Structure
         layout.addSpacing(15)
         layout.addWidget(self.search_bar)
         layout.addStretch()
+        layout.addWidget(self.add_button, alignment = Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.edit_button, alignment = Qt.AlignmentFlag.AlignRight)
         layout.addSpacing(15)
+
+    def toggle_mode(self):
+        self.is_edit_mode = not self.is_edit_mode
+        if self.is_edit_mode:
+            self.edit_button.setText(' Done')
+            self.edit_button.setIcon(IconLoader.get('done-dark'))
+            self.edit_button.setStyleSheet(Styles.action_button(back_color = "#CCCCCC", font_size = 12, text_color = '#333333'))
+            self.add_button.show()
+        else:
+            self.edit_button.setText(' Edit')
+            self.edit_button.setIcon(IconLoader.get('edit-light'))
+            self.edit_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
+            self.add_button.hide()
+        self.edit_mode_toggled.emit(self.is_edit_mode)
 
 
 class PaginationControl(QWidget):
