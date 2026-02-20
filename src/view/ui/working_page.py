@@ -19,7 +19,7 @@ from PyQt6.QtCore import (
     pyqtSignal, 
     QTimer
 )
-from PyQt6.QtGui import QColor 
+from PyQt6.QtGui import QColor, QPainter, QPen
 
 # Imported your DB objects, plus the Paged and Sorted dataclasses!
 from src.model.database import StudentDatabase, ProgramDatabase, CollegeDatabase, Paged, Sorted
@@ -110,7 +110,7 @@ class TableModel(QAbstractTableModel):
     
     def headerData(self, section, orientation, role = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._db.get_column_display_name(self._headers[section])
+            return self._db.get_column_display_name(self._headers[section]).upper()
         return None
     
 class RowHoverDelegate(QStyledItemDelegate):
@@ -141,9 +141,9 @@ class RowHoverDelegate(QStyledItemDelegate):
 class TableHeader(QHeaderView):
     def paintSection(self, painter, rect, logicalIndex):
         super().paintSection(painter, rect, logicalIndex)
+        painter.save()
 
         if logicalIndex < self.count() - 1:
-            painter.save()
             pen = painter.pen()
             pen.setColor(QColor("#dddddd")) 
             pen.setWidth(2)
@@ -154,7 +154,26 @@ class TableHeader(QHeaderView):
             y_bottom = rect.bottom() - 15
             
             painter.drawLine(x, y_top, x, y_bottom)
-            painter.restore()
+        
+        if self.isSortIndicatorShown() and self.sortIndicatorSection() == logicalIndex:
+            arrow_pen = QPen(QColor("#888888"), 1.5) 
+            arrow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            arrow_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(arrow_pen)
+
+            center_y = rect.top() + (rect.height() // 2)
+            arrow_x = rect.right() - 18 
+
+            # Smaller chevron math: Width = 8px (x to x+4 to x+8), Height = 4px
+            if self.sortIndicatorOrder() == Qt.SortOrder.AscendingOrder:
+                painter.drawLine(arrow_x, center_y + 2, arrow_x + 4, center_y - 2)
+                painter.drawLine(arrow_x + 4, center_y - 2, arrow_x + 8, center_y + 2)
+            else:
+                painter.drawLine(arrow_x, center_y - 2, arrow_x + 4, center_y + 2)
+                painter.drawLine(arrow_x + 4, center_y + 2, arrow_x + 8, center_y - 2)
+
+        painter.restore()
+        
 
 class Table(QWidget):
     def __init__(self):
@@ -178,7 +197,7 @@ class Table(QWidget):
 
         self.table.setModel(self.table_model)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        
+
         self.custom_header.setSectionsClickable(True)
         self.custom_header.setSortIndicatorShown(True)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -261,6 +280,7 @@ class PaginationControl(QWidget):
             self.current_page = max(0, total_pages - 1)
             
         self.redraw_ui()
+        self.setVisible(total_pages > 1)
 
     def go_to_page(self, page_index):
         self.current_page = page_index
@@ -378,7 +398,7 @@ class TableCard(Card):
         # Wire Up the Debounce Search Timer
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
-        self.search_timer.setInterval(300)
+        self.search_timer.setInterval(10)
         self.search_timer.timeout.connect(self.on_search_triggered)
         self.tool_bar.search_bar.textChanged.connect(self.search_timer.start)
 
@@ -393,7 +413,13 @@ class TableCard(Card):
         table_layout.addWidget(self.foot_bar)
         table_layout.addSpacing(10)
 
-        # First DB call on boot
+        # Booting
+        self.table_view.custom_header.blockSignals(True)
+        self.table_view.custom_header.setSortIndicator(0, Qt.SortOrder.AscendingOrder)
+        self.table_view.custom_header.blockSignals(False)
+
+        col_name = self.current_db.get_columns()[0]
+        self.sort_state = Sorted.By(col_name, ascending = True)
         self.fetch_data()
 
     # --- ACTION HANDLERS ---
@@ -417,7 +443,6 @@ class TableCard(Card):
         self.fetch_data()
 
     def switch_table(self, button_id):
-        # Reset visual state
         self.table_view.table.setSortingEnabled(False)
         self.table_view.hover_delegate.hovered_row = -1
         
@@ -427,7 +452,6 @@ class TableCard(Card):
 
         # Reset logical state
         self.search_text = ""
-        self.sort_state = None
         self.current_page = 0
         self.foot_bar.pagination.current_page = 0
 
@@ -437,6 +461,13 @@ class TableCard(Card):
             case 2: self.current_db = CollegeDatabase
 
         self.table_view.table_model.set_database(self.current_db)
+        self.table_view.custom_header.blockSignals(True)
+        self.table_view.custom_header.setSortIndicator(0, Qt.SortOrder.AscendingOrder)
+        self.table_view.custom_header.blockSignals(False)
+        
+        col_name = self.current_db.get_columns()[0]
+        self.sort_state = Sorted.By(col_name, ascending = True)
+
         self.table_view.table.setSortingEnabled(True)
         self.table_view.table.horizontalHeader().setStretchLastSection(True)
         

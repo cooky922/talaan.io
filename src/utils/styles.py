@@ -213,10 +213,19 @@ class Styles:
             background-color: transparent;
             border: none;
             border-bottom: 2px solid #cccccc; /* Bottom border of the header row */
-            padding: 10px;
+            padding: 10px 25px 10px 10px;
             font-weight: bold;
+            font-size: 11px;
             text-align: left;
             color: #666666;
+        }}
+
+        QHeaderView::up-arrow, QHeaderView::down-arrow {{
+            width: 0px;
+            height: 0px;
+            image: none;
+            background: none;
+            border: none;
         }}
 
         /* The tiny square where horizontal and vertical headers meet (if visible) */
