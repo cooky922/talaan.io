@@ -409,8 +409,8 @@ class StudentDatabase:
     has_key = has_id
 
     @classmethod
-    def get_records(self, paged: Paged = None, sorted: Sorted = None) -> List[dict]:
-        return self._db.get_records(paged=paged, sorted=sorted)
+    def get_records(self, where: Union[str, Callable] = None, paged: Paged = None, sorted: Sorted = None) -> List[dict]:
+        return self._db.get_records(where=where, paged=paged, sorted=sorted)
     
     @classmethod 
     def get_record(self, *, index : int = None, key : str = None) -> dict:
@@ -472,8 +472,8 @@ class ProgramDatabase:
     has_key = has_program
 
     @classmethod
-    def get_records(self, paged: Paged = None, sorted: Sorted = None) -> List[dict]:
-        return self._db.get_records(paged=paged, sorted=sorted)
+    def get_records(self, where : Union[str, Callable] = None, paged : Paged = None, sorted: Sorted = None) -> List[dict]:
+        return self._db.get_records(where=where, paged=paged, sorted=sorted)
     
     @classmethod 
     def get_record(self, *, index : int = None, key : str = None) -> dict:
@@ -565,8 +565,8 @@ class CollegeDatabase:
     has_key = has_college
 
     @classmethod
-    def get_records(self, paged: Paged = None, sorted: Sorted = None) -> List[dict]:
-        return self._db.get_records(paged=paged, sorted=sorted)
+    def get_records(self, where : Union[str, Callable] = None, paged: Paged = None, sorted: Sorted = None) -> List[dict]:
+        return self._db.get_records(where=where, paged=paged, sorted=sorted)
     
     @classmethod 
     def get_record(self, *, index : int = None, key : str = None) -> dict:

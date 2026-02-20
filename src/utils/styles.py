@@ -254,3 +254,38 @@ class Styles:
         QScrollBar::handle:horizontal {{ min-width: 30px; }}
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0px; }}
     """
+
+    @staticmethod
+    def pagination_control():
+        return f"""
+            QPushButton#PageButton {{
+                background-color: transparent;
+                color: #888888;
+                border: 1px solid transparent;
+                border-radius: 12px;
+                font-weight: bold;
+                font-size: 13px;
+                margin: 0px 2px;
+            }}
+            QPushButton#PageButton:hover:!disabled {{
+                color: #444444;
+            }}
+            QPushButton#PageButton[active="true"] {{
+                background-color: #8fae44; 
+                color: white;
+            }}
+            QPushButton#NavArrow {{
+                border: none;
+                background-color: transparent;
+                color: #888888;
+                font-size: 14px;
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+            QPushButton#NavArrow:hover:!disabled {{
+                color: #444444;
+            }}
+            QPushButton#NavArrow:disabled {{
+                color: #cccccc;
+            }}
+        """
