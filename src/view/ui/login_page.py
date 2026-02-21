@@ -18,8 +18,8 @@ from src.utils.styles import Styles
 from src.view.components import TitleLabel, InfoLabel, ToggleBox, Card
 
 class UserRole(Enum):
-    Viewer = 'Viewer'
-    Admin = 'Admin'
+    VIEWER = 'Viewer'
+    ADMIN = 'Admin'
 
 class UserRoleToggleBox(ToggleBox):
     def __init__(self):
@@ -28,9 +28,9 @@ class UserRoleToggleBox(ToggleBox):
     def get_role(self) -> Union[UserRole, None]:
         checked_id = self.group.checkedId()
         if checked_id == 0:
-            return UserRole.Viewer
+            return UserRole.VIEWER
         elif checked_id == 1:
-            return UserRole.Admin
+            return UserRole.ADMIN
         else:
             return None
 

@@ -21,8 +21,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QColor, QPainter, QPen
 
-# Imported your DB objects, plus the Paged and Sorted dataclasses!
-from src.model.database import StudentDatabase, ProgramDatabase, CollegeDatabase, Paged, Sorted
+from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, Paged, Sorted
 from src.utils.constants import Constants
 from src.utils.styles import Styles
 from src.utils.icon_loader import IconLoader
@@ -76,7 +75,7 @@ class TableModel(QAbstractTableModel):
         super().__init__()
         self._db = db
         self._headers = db.get_columns()
-        self._data = [] # The table now holds only the exact rows for the current page!
+        self._data = [] # This data holds only the exact rows for the current page
 
     def set_database(self, db):
         self.beginResetModel()
@@ -86,7 +85,7 @@ class TableModel(QAbstractTableModel):
         self.endResetModel()
 
     def set_data(self, data: list[dict]):
-        """Injects the new page of data from the database directly into the view."""
+        # Injects the new page of data from the database directly into the view
         self.beginResetModel()
         self._data = data
         self.endResetModel()
@@ -105,7 +104,7 @@ class TableModel(QAbstractTableModel):
             col = index.column()
             key = self._headers[col]
             # Safely fetch the data from the current chunk
-            return str(self._data[row].get(key, ""))
+            return str(self._data[row].get(key, ''))
         return None
     
     def headerData(self, section, orientation, role = Qt.ItemDataRole.DisplayRole):
@@ -171,7 +170,7 @@ class TableHeader(QHeaderView):
 
         if logicalIndex < self.count() - 1:
             pen = painter.pen()
-            pen.setColor(QColor("#dddddd")) 
+            pen.setColor(QColor('#dddddd')) 
             pen.setWidth(2)
             painter.setPen(pen)
 
@@ -182,7 +181,7 @@ class TableHeader(QHeaderView):
             painter.drawLine(x, y_top, x, y_bottom)
         
         if self.isSortIndicatorShown() and self.sortIndicatorSection() == logicalIndex:
-            arrow_pen = QPen(QColor("#888888"), 1.5) 
+            arrow_pen = QPen(QColor('#888888'), 1.5) 
             arrow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             arrow_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(arrow_pen)
@@ -211,12 +210,11 @@ class Table(QWidget):
         self.setLayout(layout)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.table_model = TableModel(StudentDatabase)
+        self.table_model = TableModel(StudentDirectory)
         self.table = QTableView()
 
         self.hover_delegate = RowHoverDelegate(self.table)
         self.custom_header = TableHeader(Qt.Orientation.Horizontal, self.table)
-        # self.custom_header.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
         self.table.setHorizontalHeader(self.custom_header)
 
         self.table.setItemDelegate(self.hover_delegate)
@@ -323,7 +321,7 @@ class PaginationControl(QWidget):
         self.main_layout.addLayout(self.page_btn_layout)
 
     def update_data_stats(self, total_rows):
-        """Called by TableCard when the Database returns a fresh count."""
+        # Called by 'TableCard' when the database returns the fresh count
         self.total_rows = total_rows
         total_pages = math.ceil(total_rows / self.items_per_page)
         if total_pages == 0: total_pages = 1
@@ -337,7 +335,7 @@ class PaginationControl(QWidget):
 
     def go_to_page(self, page_index):
         self.current_page = page_index
-        # Signal the TableCard to ask the Database for this page!
+        # Signal the TableCard to ask the database for this page
         self.page_changed.emit(self.current_page)
 
     def redraw_ui(self):
@@ -381,7 +379,7 @@ class PaginationControl(QWidget):
 
         btn_next = QPushButton()
         btn_next.setIcon(IconLoader.get('arrow-forward-gray'))
-        btn_next.setObjectName("NavArrow")
+        btn_next.setObjectName('NavArrow')
         btn_next.setFixedSize(25, 25)
         btn_next.setEnabled(self.current_page < total_pages - 1)
         btn_next.clicked.connect(lambda: self.go_to_page(self.current_page + 1))
@@ -389,16 +387,16 @@ class PaginationControl(QWidget):
 
     def _add_page_btn(self, page_num):
         btn = QPushButton(str(page_num + 1))
-        btn.setObjectName("PageButton")
+        btn.setObjectName('PageButton')
         btn.setFixedSize(25, 25)
-        btn.setProperty("active", page_num == self.current_page)
+        btn.setProperty('active', page_num == self.current_page)
         btn.style().unpolish(btn)
         btn.style().polish(btn)
         btn.clicked.connect(lambda checked, p=page_num: self.go_to_page(p))
         self.page_btn_layout.addWidget(btn)
 
     def _add_dots(self):
-        lbl = InfoLabel("...", color = Constants.TEXT_SECONDARY_COLOR)
+        lbl = InfoLabel('...', color = Constants.TEXT_SECONDARY_COLOR)
         lbl.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
         self.page_btn_layout.addWidget(lbl)
 
@@ -437,7 +435,7 @@ class TableCard(Card):
         self.setLayout(table_layout)
 
         # State Tracking
-        self.current_db = StudentDatabase
+        self.current_db = StudentDirectory
         self.search_text = ""
         self.sort_state = None
         self.current_page = 0
@@ -475,7 +473,6 @@ class TableCard(Card):
         self.sort_state = Sorted.By(col_name, ascending = True)
         self.fetch_data()
 
-    # --- ACTION HANDLERS ---
     def on_search_triggered(self):
         self.search_text = self.tool_bar.search_bar.text()
         self.current_page = 0
@@ -509,9 +506,9 @@ class TableCard(Card):
         self.foot_bar.pagination.current_page = 0
 
         match button_id:
-            case 0: self.current_db = StudentDatabase
-            case 1: self.current_db = ProgramDatabase
-            case 2: self.current_db = CollegeDatabase
+            case 0: self.current_db = StudentDirectory
+            case 1: self.current_db = ProgramDirectory
+            case 2: self.current_db = CollegeDirectory
 
         self.table_view.table_model.set_database(self.current_db)
         self.table_view.custom_header.blockSignals(True)
@@ -528,19 +525,19 @@ class TableCard(Card):
         self.fetch_data()
 
     def fetch_data(self):
-        """Asks the active Database for exactly what needs to be shown."""
+        # Asks the active database for exactly what needs to be shown
         where_clause = None
         if self.search_text:
             search_str = self.search_text.lower()
             where_clause = lambda row: any(search_str in str(val).lower() for val in row.values)
 
-        total_matches = self.current_db.get_count(where=where_clause)
-        paged_request = Paged.Specific(index=self.current_page + 1, size=self.items_per_page)
+        total_matches = self.current_db.get_count(where = where_clause)
+        paged_request = Paged.Specific(index = self.current_page + 1, size = self.items_per_page)
 
         records = self.current_db.get_records(
-            where=where_clause, 
-            sorted=self.sort_state, 
-            paged=paged_request
+            where = where_clause, 
+            sorted = self.sort_state, 
+            paged = paged_request
         )
 
         self.table_view.table_model.set_data(records)
@@ -587,7 +584,7 @@ class WorkingPage(QWidget):
     def set_role(self, role : UserRole):
         self.role = role
         self.header.role_label.setText(role.value)
-        if role == UserRole.Admin:
+        if role == UserRole.ADMIN:
             self.table_card.tool_bar.edit_button.show()
-        elif role == UserRole.Viewer:
+        elif role == UserRole.VIEWER:
             self.table_card.tool_bar.edit_button.hide()
