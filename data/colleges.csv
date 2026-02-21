@@ -1,8 +1,8 @@
 college_code,college_name
-"CHS","College of Health Sciences"
-"CCS","College of Computer Studies"
-"COE","College of Engineering"
-"CSM","College of Science and Mathematics"
-"CEBA","College of Economics, Business, and Accountancy"
-"CASS","College of Arts and Social Sciences"
-"CED","College of Education"
+CHS,College of Health Sciences
+CCS,College of Computer Studies
+COE,College of Engineering
+CSM,College of Science and Mathematics
+CEBA,"College of Economics, Business, and Accountancy"
+CASS,College of Arts and Social Sciences
+CED,College of Education

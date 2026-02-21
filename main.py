@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 
+from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory
 from src.view.ui.main_window import MainWindow
 
 def main():
@@ -9,7 +10,11 @@ def main():
     window = MainWindow()
     print('initialization done')
     window.show()
-    sys.exit(app.exec())
+    ret = app.exec()
+    StudentDirectory.save()
+    ProgramDirectory.save()
+    CollegeDirectory.save()
+    sys.exit(ret)
 
 if __name__ == '__main__':
     main()

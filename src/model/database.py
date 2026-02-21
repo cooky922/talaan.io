@@ -78,8 +78,9 @@ class GenericDatabase:
     def has_key(self, key: str) -> bool:
         if not self.primary_key:
             raise DatabaseError(DatabaseErrorKind.UNDEFINED_PRIMARY_KEY)
-        return key in self.df[self.primary_key].astype(str).values
-    
+        # return key in self.get_keys()
+        return (self.df[self.primary_key].astype(str).str.strip() == key).any()    
+
     def get_records_as_dataframe(self, 
                                  where: Union[str, Callable] = None,
                                  sorted: Optional[Sorted] = None,
@@ -306,6 +307,10 @@ class StudentDirectory:
     def delete_record(self, *, index: int = None, key: str = None):
         self._db.delete_record(index = index, key = key)
 
+    @classmethod
+    def save(self):
+        self._db.save()
+
 # Handles and stores program records
 class ProgramDirectory:
     _path = Path(__file__).parent.parent.parent / 'data' / 'programs.csv'
@@ -331,8 +336,9 @@ class ProgramDirectory:
 
     @classmethod
     def has_program(self, key: str) -> bool:
-        return self._db.has_key(str)
-    
+        return self._db.has_key(key)
+        # return key in self.get_programs()
+
     has_key = has_program
 
     @classmethod
@@ -396,6 +402,10 @@ class ProgramDirectory:
                     raise ValueError('...')
         self._db.delete_record(index = index, key = key)
 
+    @classmethod
+    def save(self):
+        self._db.save()
+
 # Handles and stores college records
 class CollegeDirectory:
     _path = Path(__file__).parent.parent.parent / 'data' / 'colleges.csv'
@@ -421,7 +431,7 @@ class CollegeDirectory:
 
     @classmethod
     def has_college(self, key: str) -> bool:
-        return self._db.has_key(str)
+        return self._db.has_key(key)
     
     has_key = has_college
 
@@ -482,3 +492,7 @@ class CollegeDirectory:
                 case ConstraintAction.Restrict:
                     raise ValueError('...')
         self._db.delete_record(index = index, key = key)
+
+    @classmethod
+    def save(self):
+        self._db.save()

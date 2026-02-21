@@ -1,59 +1,60 @@
 program_code,program_name,college_code
-"BSN","Bachelor of Science in Nursing","CHS"
-"BSCS","Bachelor of Science in Computer Science","CCS"
-"BSIS","Bachelor of Science in Information Systems","CCS"
-"BSIT","Bachelor of Science in Information Technology","CCS"
-"BSCA","Bachelor of Science in Computer Applications","CCS"
-"BS Bio-Animal Biology","Bachelor of Science in Biology (Animal Biology)","CSM"
-"BS Bio-Plant Biology","Bachelor of Science in Biology (Plant Biology)","CSM"
-"BS Bio-Biodiversity","Bachelor of Science in Biology (Biodiversity)","CSM"
-"BS Bio-Microbiology","Bachelor of Science in Biology (Microbiology)","CSM"
-"BS Mar","Bachelor of Science in Marine Biology","CSM"
-"BS Math","Bachelor of Science in Mathematics","CSM"
-"BS Stat","Bachelor of Science in Statistics","CSM"
-"BS Physics","Bachelor of Science in Physics","CSM"
-"BS Chem","Bachelor of Science in Chemistry","CSM"
-"BSCerE","Bachelor of Science in Ceramics Engineering","COE"
-"BSChE","Bachelor of Science in Chemical Engineering","COE"
-"BSCE","Bachelor of Science in Civil Engineering","COE"
-"BSCpE","Bachelor of Science in Computer Engineering","COE"
-"BSEE","Bachelor of Science in Electrical Engineering","COE"
-"BSECE","Bachelor of Science in Electronics Engineering","COE"
-"BSEnE","Bachelor of Science in Environmental Engineering","COE"
-"BS IAM","Bachelor of Science in Industrial Automation and Mechatronics","COE"
-"BSME","Bachelor of Science in Mechanical Engineering","COE"
-"BSMetE","Bachelor of Science in Metallurgical Engineering","COE"
-"BSEME","Bachelor of Science in Mining Engineering","COE"
-"BET-ChET","Bachelor of Engineering Technology in Chemical Engineering Technology","COE"
-"BET-CET","Bachelor of Engineering Technology in Civil Engineering Technology","COE"
-"BET-EET","Bachelor of Engineering Technology in Electrical Engineering Technology","COE"
-"BET-EST","Bachelor of Engineering Technology in Electronics Engineering Technology","COE"
-"BET-MET","Bachelor of Engineering Technology in Mechanical Engineering Technology","COE"
-"BET-MMT","Bachelor of Engineering Technology in Metallurgy and Materials Engineering Technology","COE"
-"BEEd-LE","Bachelor of Elementary Education in Language Education","CED"
-"BEEd-SM","Bachelor of Elementary Education in Science and Mathematics","CED"
-"BSEd-Bio","Bachelor of Secondary Education in Biology","CED"
-"BSEd-Chem","Bachelor of Secondary Education in Chemistry","CED"
-"BSEd-Math","Bachelor of Secondary Education in Mathematics","CED"
-"BSEd-Phys","Bachelor of Secondary Education in Physics","CED"
-"BSEd-Fil","Bachelor of Secondary Education in Filipino","CED"
-"BTVTEd-DT","Bachelor of Technical-Vocational Teacher Education in Drafting Technology","CED"
-"BTLEd-HE","Bachelor of Technology and Livelihood Education in Home Economics","CED"
-"BTLEd-IA","Bachelor of Technology and Livelihood Education in Industrial Arts","CED"
-"BPEd","Bachelor of Physical Education","CED"
-"BSA","Bachelor of Science in Accountancy","CEBA"
-"BS Econ","Bachelor of Science in Economics","CEBA"
-"BSENTREP","Bachelor of Science in Entrepreneurship","CEBA"
-"BS HM","Bachelor of Science in Hospitality Management","CEBA"
-"BSBA-BE","Bachelor of Science in Business Administration in Business Economics","CEBA"
-"BSBA-MM","Bachelor of Science in Business Administration in Marketing Management","CEBA"
-"BAELS","Bachelor of Arts in English Language Studies","CASS"
-"BALCS","Bachelor of Arts in Literary and Cultural Studies","CASS"
-"BA Fil","Batsilyer ng Sining sa Filipino","CASS"
-"BA His","Bachelor of Arts in History","CASS"
-"BA Pan","Batsilyer ng Sining sa Panitikan","CASS"
-"BA PoS","Bachelor of Arts in Political Science","CASS"
-"BA Soc","Bachelor of Arts in Sociology","CASS"
-"BA Psych","Bachelor of Arts in Psychology","CASS"
-"BSPsych","Bachelor of Science in Psychology","CASS"
-"BSPhil","Bachelor of Science in Philosophy - Applied Ethics","CASS"
+BSN,Bachelor of Science in Nursing,CHS
+BSCS,Bachelor of Science in Computer Science,CCS
+BSIS,Bachelor of Science in Information Systems,CCS
+BSIT,Bachelor of Science in Information Technology,CCS
+BSCA,Bachelor of Science in Computer Applications,CCS
+BS Bio-Animal Biology,Bachelor of Science in Biology (Animal Biology),CSM
+BS Bio-Plant Biology,Bachelor of Science in Biology (Plant Biology),CSM
+BS Bio-Biodiversity,Bachelor of Science in Biology (Biodiversity),CSM
+BS Bio-Microbiology,Bachelor of Science in Biology (Microbiology),CSM
+BS Mar,Bachelor of Science in Marine Biology,CSM
+BS Math,Bachelor of Science in Mathematics,CSM
+BS Stat,Bachelor of Science in Statistics,CSM
+BS Physics,Bachelor of Science in Physics,CSM
+BS Chem,Bachelor of Science in Chemistry,CSM
+BSCerE,Bachelor of Science in Ceramics Engineering,COE
+BSChE,Bachelor of Science in Chemical Engineering,COE
+BSCE,Bachelor of Science in Civil Engineering,COE
+BSCpE,Bachelor of Science in Computer Engineering,COE
+BSEE,Bachelor of Science in Electrical Engineering,COE
+BSECE,Bachelor of Science in Electronics Engineering,COE
+BSEnE,Bachelor of Science in Environmental Engineering,COE
+BS IAM,Bachelor of Science in Industrial Automation and Mechatronics,COE
+BSME,Bachelor of Science in Mechanical Engineering,COE
+BSMetE,Bachelor of Science in Metallurgical Engineering,COE
+BSEME,Bachelor of Science in Mining Engineering,COE
+BET-ChET,Bachelor of Engineering Technology in Chemical Engineering Technology,COE
+BET-CET,Bachelor of Engineering Technology in Civil Engineering Technology,COE
+BET-EET,Bachelor of Engineering Technology in Electrical Engineering Technology,COE
+BET-EST,Bachelor of Engineering Technology in Electronics Engineering Technology,COE
+BET-MET,Bachelor of Engineering Technology in Mechanical Engineering Technology,COE
+BET-MMT,Bachelor of Engineering Technology in Metallurgy and Materials Engineering Technology,COE
+BEEd-LE,Bachelor of Elementary Education in Language Education,CED
+BEEd-SM,Bachelor of Elementary Education in Science and Mathematics,CED
+BSEd-Bio,Bachelor of Secondary Education in Biology,CED
+BSEd-Chem,Bachelor of Secondary Education in Chemistry,CED
+BSEd-Math,Bachelor of Secondary Education in Mathematics,CED
+BSEd-Phys,Bachelor of Secondary Education in Physics,CED
+BSEd-Fil,Bachelor of Secondary Education in Filipino,CED
+BTVTEd-DT,Bachelor of Technical-Vocational Teacher Education in Drafting Technology,CED
+BTLEd-HE,Bachelor of Technology and Livelihood Education in Home Economics,CED
+BTLEd-IA,Bachelor of Technology and Livelihood Education in Industrial Arts,CED
+BPEd,Bachelor of Physical Education,CED
+BSA,Bachelor of Science in Accountancy,CEBA
+BS Econ,Bachelor of Science in Economics,CEBA
+BSENTREP,Bachelor of Science in Entrepreneurship,CEBA
+BS HM,Bachelor of Science in Hospitality Management,CEBA
+BSBA-BE,Bachelor of Science in Business Administration in Business Economics,CEBA
+BSBA-MM,Bachelor of Science in Business Administration in Marketing Management,CEBA
+BAELS,Bachelor of Arts in English Language Studies,CASS
+BALCS,Bachelor of Arts in Literary and Cultural Studies,CASS
+BA Fil,Batsilyer ng Sining sa Filipino,CASS
+BA His,Bachelor of Arts in History,CASS
+BA Pan,Batsilyer ng Sining sa Panitikan,CASS
+BA PoS,Bachelor of Arts in Political Science,CASS
+BA Soc,Bachelor of Arts in Sociology,CASS
+BA Psych,Bachelor of Arts in Psychology,CASS
+BSPsych,Bachelor of Science in Psychology,CASS
+BSPhil,Bachelor of Science in Philosophy - Applied Ethics,CASS
+BSMEE,Bachelor of Science in Microelectronics Engineering,COE

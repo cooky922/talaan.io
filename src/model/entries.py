@@ -63,7 +63,7 @@ class StudentEntry:
                                               StudentEntry.FieldKind.ID,
                                               ValidationErrorKind.INVALID_FORMAT,
                                               'ID Number must be in format 20XX-XXXX')
-                    if not part.is_digit():
+                    if not part.isdigit():
                         raise ValidationError(EntryKind.STUDENT,
                                               StudentEntry.FieldKind.ID,
                                               ValidationErrorKind.INVALID_FORMAT,
@@ -93,7 +93,8 @@ class StudentEntry:
                                           StudentEntry.FieldKind.YEAR,
                                           ValidationErrorKind.INVALID_FORMAT,
                                           'The input is not a digit')
-                if 1 <= int(input) <= 4:
+                year = int(input)
+                if year < 1 or year > 4:
                     raise ValidationError(EntryKind.STUDENT,
                                           StudentEntry.FieldKind.YEAR,
                                           ValidationErrorKind.INVALID_FORMAT,

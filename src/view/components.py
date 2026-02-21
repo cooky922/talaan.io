@@ -1,6 +1,8 @@
 from typing import List
 from PyQt6.QtWidgets import (
     QButtonGroup,
+    QComboBox,
+    QCompleter,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -15,7 +17,7 @@ from PyQt6.QtCore import (
     QSize,
     QEvent
 )
-from PyQt6.QtGui import QIcon, QColor, QPen
+from PyQt6.QtGui import QIcon, QColor, QPen, QPainter
 
 from src.utils.icon_loader import IconLoader
 from src.utils.styles import Styles
@@ -172,3 +174,56 @@ class TableHeader(QHeaderView):
                 painter.drawLine(arrow_x + 4, center_y + 2, arrow_x + 8, center_y - 2)
 
         painter.restore()
+
+class SearchableComboBox(QComboBox):
+    def __init__(self, items, placeholder=""):
+        super().__init__()
+        self.setEditable(True)
+        self.addItems(items)
+        
+        # Inject Placeholder
+        self.lineEdit().setPlaceholderText(placeholder)
+        
+        # Setup Search/Autocomplete
+        if self.completer():
+            self.completer().setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+            self.completer().setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            
+            # Style the popup list
+            self.completer().popup().setStyleSheet("""
+                QListView { 
+                    background-color: white; 
+                    color: #333333; 
+                    border: 1px solid #CCCCCC; 
+                    selection-background-color: #f0f4e6; 
+                    selection-color: #333333; 
+                    outline: none; 
+                    font-size: 11px; 
+                }
+                QListView::item { padding: 6px; }
+            """)
+
+    def paintEvent(self, event):
+        # 1. Let Qt draw the normal white box and the text first
+        super().paintEvent(event)
+        
+        # 2. Grab our custom painter and turn on Anti-Aliasing!
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # 3. Setup a crisp, rounded pen (match your dark gray text color)
+        pen = QPen(QColor("#888888"), 1.5)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        
+        # 4. Calculate the exact center of the right edge
+        rect = self.rect()
+        x = rect.width() - 15  # 15 pixels away from the right edge
+        y = rect.height() // 2 # Exact vertical center
+        
+        # 5. Draw the perfectly crisp 'v' chevron mathematically!
+        # Left wing
+        painter.drawLine(x - 4, y - 2, x, y + 2)
+        # Right wing
+        painter.drawLine(x, y + 2, x + 4, y - 2)

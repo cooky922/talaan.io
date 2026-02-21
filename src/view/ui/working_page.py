@@ -1,25 +1,27 @@
 import math
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QComboBox,
+    QDialog,
+    QGridLayout,
     QHBoxLayout,
-    QHeaderView,
+    QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSizePolicy,
-    QStyledItemDelegate,
     QTableView,
     QWidget, 
     QVBoxLayout
 )
 from PyQt6.QtCore import (
-    Qt, 
-    QEvent,
+    Qt,
     QSize,
     QAbstractTableModel, 
     pyqtSignal, 
     QTimer
 )
-from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtGui import QColor, QCursor
 
 from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, Paged, Sorted
 from src.utils.constants import Constants
@@ -32,6 +34,7 @@ from src.view.components import (
     ToggleBox, 
     Card,
     RowHoverDelegate,
+    SearchableComboBox,
     TableHeader
 )
 from src.view.ui.login_page import UserRole
@@ -77,6 +80,210 @@ class Header(QWidget):
         layout.addWidget(self.logout_button, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addSpacing(10)
 
+class RecordDialog(QDialog):
+    def __init__(self, current_directory, record=None, parent=None):
+        super().__init__(parent)
+        self.current_directory = current_directory
+        self.record = record
+        self.is_edit_mode = record is not None 
+        
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
+        
+        if self.current_directory == StudentDirectory:
+            self.setFixedWidth(350)
+        elif self.current_directory == ProgramDirectory:
+            self.setFixedWidth(400)
+        elif self.current_directory == CollegeDirectory:
+            self.setFixedWidth(400)
+            
+        self.setObjectName("RecordDialog")
+        self.setStyleSheet("""
+            QDialog#RecordDialog { background-color: #ffffff; }
+            QLabel { color: #333333; }
+        """)
+        
+        title_text = "Edit Record" if self.is_edit_mode else "Add Record"
+        if self.current_directory == StudentDirectory: title_text = title_text.replace("Record", "Student")
+        elif self.current_directory == ProgramDirectory: title_text = title_text.replace("Record", "Program")
+        elif self.current_directory == CollegeDirectory: title_text = title_text.replace("Record", "College")
+        self.setWindowTitle(title_text)
+        
+        self.inputs = {}
+        self.setup_ui()
+        self.populate_data()
+
+    def setup_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
+
+        self.grid_layout = QGridLayout()
+        self.grid_layout.setSpacing(15)
+        
+        columns = self.current_directory.get_columns()
+        primary_key = self.current_directory._db.primary_key
+        
+        row_idx = 0
+        col_idx = 0
+        
+        for col_name in columns:
+            field_layout = QVBoxLayout()
+            field_layout.setSpacing(5)
+            
+            label_text = self.current_directory.get_column_display_name(col_name)
+            
+            lbl = QLabel(label_text.upper())
+            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #555555;")
+            field_layout.addWidget(lbl)
+            
+            # Pass the label_text to create placeholders!
+            input_widget = self.create_input_widget(col_name, label_text)
+            
+            if self.is_edit_mode and col_name == primary_key:
+                if isinstance(input_widget, QComboBox):
+                    input_widget.setEnabled(False)
+                else:
+                    input_widget.setReadOnly(True)
+                
+                # Apply the dashed border, gray background, and Forbidden Cursor
+                disabled_css = """
+                    background-color: #f7f7f7 !important;
+                    color: #aaaaaa !important;
+                    border: 1px dashed #cccccc !important;
+                """
+                input_widget.setStyleSheet(input_widget.styleSheet() + f" QLineEdit {{ {disabled_css} }} QComboBox {{ {disabled_css} }}")
+                input_widget.setCursor(Qt.CursorShape.ForbiddenCursor)
+
+            field_layout.addWidget(input_widget)
+            self.inputs[col_name] = input_widget
+            
+            if col_name in ['first_name', 'last_name', 'year', 'gender']:
+                self.grid_layout.addLayout(field_layout, row_idx, col_idx)
+                col_idx += 1
+                if col_idx > 1:
+                    col_idx = 0
+                    row_idx += 1
+            else:
+                if col_idx == 1: 
+                    row_idx += 1
+                    col_idx = 0
+                self.grid_layout.addLayout(field_layout, row_idx, 0, 1, 2)
+                row_idx += 1
+
+        main_layout.addLayout(self.grid_layout)
+        main_layout.addSpacing(10)
+
+        footer_layout = QHBoxLayout()
+        self.btn_cancel = QPushButton("Cancel")
+        self.btn_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_cancel.setStyleSheet("""
+            QPushButton { background-color: white; border: 1px solid #CCCCCC; border-radius: 4px; padding: 6px 15px; color: #555555; }
+            QPushButton:hover { background-color: #F5F5F5; }
+        """)
+        self.btn_cancel.clicked.connect(self.reject)
+        
+        action_text = "Save" if self.is_edit_mode else "Add"
+        self.btn_action = QPushButton(action_text)
+        self.btn_action.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_action.setStyleSheet("""
+            QPushButton { background-color: #8fae44; border: none; border-radius: 4px; padding: 6px 20px; color: white; font-weight: bold; }
+            QPushButton:hover { background-color: #7a9638; }
+        """)
+        self.btn_action.clicked.connect(self.accept)
+        
+        footer_layout.addStretch()
+        footer_layout.addWidget(self.btn_cancel)
+        footer_layout.addWidget(self.btn_action)
+        main_layout.addLayout(footer_layout)
+
+        self.adjustSize()
+        self.setFixedHeight(self.height())
+
+    def create_input_widget(self, col_name, label_text):
+        base_style = """
+            border: 1px solid #CCCCCC;
+            border-radius: 4px;
+            background-color: white;
+            color: #333333;
+            font-size: 11px;
+        """
+        
+        interactive_states = """
+            :hover { border: 1px solid #8fae44; }
+            :focus { border: 1.5px solid #8fae44; background-color: #fcfff5; }
+        """
+
+        # Notice how we completely killed the down-arrow image here!
+        combo_style = f"""
+            QComboBox {{ {base_style} padding: 6px 10px; }}
+            QComboBox{interactive_states}
+            QComboBox::drop-down {{
+                subcontrol-origin: padding; subcontrol-position: top right; width: 30px; border-left: none;
+            }}
+            QComboBox::down-arrow {{
+                image: none; background: none; border: none;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: white; color: #333333; border: 1px solid #CCCCCC;
+                selection-background-color: #f0f4e6; selection-color: #333333; outline: none;
+            }}
+            QLineEdit {{
+                background: transparent; border: none; padding: 0px; color: #333333; font-size: 11px;
+            }}
+            QLineEdit::placeholder {{ color: #bbbbbb; }}
+        """
+
+        placeholder = f"Enter {label_text.lower()}"
+        select_placeholder = f"Select {label_text.lower()}"
+
+        if col_name == 'gender': 
+            cb = SearchableComboBox(['Male', 'Female', 'Other'], select_placeholder)
+            cb.setStyleSheet(combo_style)
+            return cb
+            
+        elif col_name == 'year': 
+            cb = SearchableComboBox(['1', '2', '3', '4'], select_placeholder)
+            cb.setStyleSheet(combo_style)
+            return cb
+            
+        elif col_name == 'program_code' and self.current_directory == StudentDirectory:
+            cb = SearchableComboBox([""] + ProgramDirectory.get_keys(), select_placeholder)
+            cb.setStyleSheet(combo_style)
+            return cb
+            
+        elif col_name == 'college_code' and self.current_directory == ProgramDirectory:
+            cb = SearchableComboBox([""] + CollegeDirectory.get_keys(), select_placeholder)
+            cb.setStyleSheet(combo_style)
+            return cb
+            
+        else:
+            le = QLineEdit()
+            le.setPlaceholderText(placeholder)
+            le_style = f"QLineEdit {{ {base_style} padding: 6px 10px; }} QLineEdit{interactive_states} QLineEdit::placeholder {{ color: #bbbbbb; }}"
+            le.setStyleSheet(le_style)
+            return le
+
+    def populate_data(self):
+        if not self.is_edit_mode: return
+        for col_name, widget in self.inputs.items():
+            val = str(self.record.get(col_name, ""))
+            if isinstance(widget, QComboBox): widget.setCurrentText(val)
+            elif isinstance(widget, QLineEdit): widget.setText(val)
+
+    def get_data(self) -> dict:
+        data = {}
+        for col_name, widget in self.inputs.items():
+            val = None
+            if isinstance(widget, QComboBox):
+                val = widget.currentText()
+            elif isinstance(widget, QLineEdit):
+                val = widget.text()
+            else:
+                val = ''
+            data[col_name] = val
+        return data
+    
+        
 class TableModel(QAbstractTableModel):
     def __init__(self, db):
         super().__init__()
@@ -343,7 +550,6 @@ class FootBar(QWidget):
         layout.addWidget(self.pagination)
         layout.addSpacing(15)
 
-
 class TableCard(Card):
     def __init__(self):
         super().__init__('TableCard', fixed_size = QSize(700, 350))
@@ -373,8 +579,10 @@ class TableCard(Card):
         self.tool_bar.search_bar.textChanged.connect(self.search_timer.start)
 
         # Wire Up Pagination & Sorting Signals
-        self.foot_bar.pagination.page_changed.connect(self.on_page_changed)
+        self.tool_bar.add_button.clicked.connect(self.open_add_dialog)
         self.table_view.custom_header.sortIndicatorChanged.connect(self.on_sort_changed)
+        self.table_view.table.clicked.connect(self.on_row_clicked)
+        self.foot_bar.pagination.page_changed.connect(self.on_page_changed)
 
         # Layout
         table_layout.addSpacing(10)
@@ -402,8 +610,36 @@ class TableCard(Card):
         self.current_page = page_index
         self.fetch_data()
 
-    def on_sort_changed(self, logicalIndex, order):
-        col_name = self.current_db.get_columns()[logicalIndex]
+    # triggered when a user clicks a row in the table
+    def on_row_clicked(self, index):
+        # if the toolbar is not in edit mode, do nothing
+        if not self.tool_bar.is_edit_mode:
+            return
+        record = self.table_view.table_model._data[index.row()]
+        primary_key = self.current_db._db.primary_key
+        key_value = record[primary_key]
+
+        dialog = RecordDialog(self.current_db, record = record, parent = self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_data = dialog.get_data()
+            try:
+                self.current_db.update_record(new_data, key = key_value)
+                self.fetch_data()
+            except Exception as e:
+                self.show_custom_message('Error', f'Failed to update record;\n{str(e)}', is_error = True)
+
+    def open_add_dialog(self):
+        dialog = RecordDialog(self.current_db, record = None, parent = self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_data = dialog.get_data()
+            try:
+                self.current_db.add_record(new_data)
+                self.fetch_data()
+            except Exception as e:
+                self.show_custom_message('Error', f'Failed to add record;\n{str(e)}', is_error = True)
+
+    def on_sort_changed(self, column_index, order):
+        col_name = self.current_db.get_columns()[column_index]
         ascending = order == Qt.SortOrder.AscendingOrder
         self.sort_state = Sorted.By(col_name, ascending)
         
@@ -439,8 +675,7 @@ class TableCard(Card):
 
         self.table_view.table.setSortingEnabled(True)
         self.table_view.table.horizontalHeader().setStretchLastSection(True)
-        
-        # Fire new DB Request
+
         self.fetch_data()
 
     def fetch_data(self):
@@ -470,6 +705,36 @@ class TableCard(Card):
             self.foot_bar.entries_label.setText(f'Showing all {total_matches} entries')
         else:
             self.foot_bar.entries_label.setText(f'Showing {visible_count} of {total_matches} entries')
+
+    def show_custom_message(self, title, message, is_error=False):
+        """A beautifully styled, white message box."""
+        msg = QMessageBox(self)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.setIcon(QMessageBox.Icon.Critical if is_error else QMessageBox.Icon.Information)
+        
+        # Apply the clean white theme and styled buttons
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: #ffffff;
+            }
+            QLabel {
+                color: #333333;
+                font-size: 12px;
+            }
+            QPushButton {
+                background-color: #8fae44; 
+                border: none; 
+                border-radius: 4px;
+                padding: 6px 20px; 
+                color: white; 
+                font-weight: bold;
+            }
+            QPushButton:hover { 
+                background-color: #7a9638; 
+            }
+        """)
+        msg.exec()
 
 class WorkingPage(QWidget):
     logout_signal = pyqtSignal()

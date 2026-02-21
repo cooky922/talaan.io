@@ -69,7 +69,7 @@ class Styles:
     def card(id_name):
         back_color = Constants.CARD_COLOR
         # border_color = '#ccc'
-        border_radius = 30
+        border_radius = 15
         return f"""
             #{id_name} {{
                 background-color: {back_color}; 
@@ -83,9 +83,9 @@ class Styles:
     @staticmethod
     def card_shadow():
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(0)
-        shadow.setXOffset(10)
-        shadow.setYOffset(10)
+        shadow.setBlurRadius(10)
+        shadow.setXOffset(5)
+        shadow.setYOffset(5)
         shadow.setColor(QColor(Constants.CARD_SHADOW_COLOR))
         return shadow
     
@@ -157,7 +157,7 @@ class Styles:
             #Header {{
                 background-color: {Constants.HEADER_COLOR};
                 padding: 20px;
-                border-bottom: 1px solid #999;
+                border-bottom: 1px solid #aebb76;
             }}
         """
     
