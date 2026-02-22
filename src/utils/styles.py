@@ -298,3 +298,55 @@ class Styles:
                 color: #cccccc;
             }}
         """
+    
+    @staticmethod
+    def combobox_dropdown():
+        return """
+            QAbstractItemView {
+                background-color: white;
+                border: none;
+                border-radius: 8px;  /* The Rounded Corners */
+                padding: 4px;        /* Spacing so items don't touch the rounded edge */
+                outline: none;
+            }
+
+            QAbstractItemView::item {
+                /* padding: 8px 10px; */
+                color: #333333;
+                border-radius: 4px;  /* Rounded selection highlight */
+                border: none;
+            }
+            
+            QAbstractItemView::item:selected, QAbstractItemView::item:hover {
+                background-color: #f0f4e6; /* Your Brand Green */
+                color: #333333;
+                border: none;
+            }
+
+            QScrollBar:vertical {
+                border: none !important;
+                background: transparent;
+                width: 8px;
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar:vertical:hover {
+                border: none !important;
+                background: transparent;
+            }
+            QScrollBar::handle:vertical {
+                background: #dddddd;
+                min-height: 20px;
+                border-radius: 4px;
+                border: none !important;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #bbbbbb;
+                border: none !important;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """

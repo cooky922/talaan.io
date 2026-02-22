@@ -24,6 +24,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QColor, QCursor
 
 from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, Paged, Sorted
+from src.model.entries import EntryKind
 from src.utils.constants import Constants
 from src.utils.styles import Styles
 from src.utils.icon_loader import IconLoader
@@ -35,9 +36,12 @@ from src.view.components import (
     Card,
     RowHoverDelegate,
     SearchableComboBox,
-    TableHeader
+    TableHeader,
+    MessageBox
 )
 from src.view.ui.login_page import UserRole
+
+import traceback
 
 class DirectoryToggleBox(ToggleBox):
     def __init__(self):
@@ -80,32 +84,119 @@ class Header(QWidget):
         layout.addWidget(self.logout_button, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addSpacing(10)
 
+from PyQt6.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton
+from PyQt6.QtCore import Qt
+
+class YearStepper(QLineEdit):
+    def __init__(self, min_val = 1, max_val = 5, parent = None):
+        # Because we inherit from QLineEdit, we initialize it directly!
+        super().__init__(str(min_val), parent)
+        self.min_val = min_val
+        self.max_val = max_val
+        
+        self.setReadOnly(True)
+        self.setTextMargins(0, 0, 0, 0)
+        
+        self.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #CCCCCC;
+                border-radius: 10px;
+                background-color: white;
+                color: #333333;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            QLineEdit:hover { border: 1px solid #8fae44; }
+            QLineEdit:focus { border: 1.5px solid #8fae44; background-color: #fcfff5; }
+        """)
+        
+        # 2. THE FLOATING BUTTON CONTAINER
+        # By passing 'self' as the parent, this widget lives INSIDE the QLineEdit
+        self.btn_container = QWidget(self)
+        self.btn_container.setFixedSize(20, 26) 
+        
+        btn_layout = QVBoxLayout(self.btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(0) # Zero gap between + and -
+        
+        # Transparent buttons so they blend beautifully into the white input field
+        btn_style = """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                font-size: 13px;
+                font-weight: bold;
+                color: #888888;
+            }
+            QPushButton:hover { color: #8fae44; background-color: #f0f4e6; border-radius: 2px;}
+            QPushButton:pressed { background-color: #e4ebcc; }
+        """
+        
+        self.btn_plus = QPushButton('+')
+        self.btn_plus.setFixedSize(20, 13)
+        self.btn_plus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_plus.setStyleSheet(btn_style)
+        self.btn_plus.clicked.connect(self.increment)
+        
+        self.btn_minus = QPushButton('-')
+        self.btn_minus.setFixedSize(20, 13)
+        self.btn_minus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_minus.setStyleSheet(btn_style)
+        self.btn_minus.clicked.connect(self.decrement)
+        
+        btn_layout.addWidget(self.btn_plus)
+        btn_layout.addWidget(self.btn_minus)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        rect = self.rect()
+        # Move it 2 pixels away from the right edge, perfectly centered vertically
+        self.btn_container.move(
+            rect.width() - self.btn_container.width() - 2, 
+            (rect.height() - self.btn_container.height()) // 2
+        )
+
+    def increment(self):
+        current = int(self.text() or self.min_val)
+        if current < self.max_val:
+            self.setText(str(current + 1))
+
+    def decrement(self):
+        current = int(self.text() or self.min_val)
+        if current > self.min_val:
+            self.setText(str(current - 1))
+            
+    def setText(self, text):
+        if text and str(text).isdigit():
+            val = max(self.min_val, min(self.max_val, int(text)))
+            super().setText(str(val))
+
 class RecordDialog(QDialog):
-    def __init__(self, current_directory, record=None, parent=None):
+    def __init__(self, current_db, record=None, parent=None):
         super().__init__(parent)
-        self.current_directory = current_directory
+        self.current_db = current_db
         self.record = record
-        self.is_edit_mode = record is not None 
+        self.is_edit_mode = record is not None
+        self.is_deleted = False
         
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
-        
-        if self.current_directory == StudentDirectory:
-            self.setFixedWidth(350)
-        elif self.current_directory == ProgramDirectory:
-            self.setFixedWidth(400)
-        elif self.current_directory == CollegeDirectory:
-            self.setFixedWidth(400)
+
+        match self.current_db.get_entry_kind():
+            case EntryKind.STUDENT:
+                self.setFixedWidth(350)
+            case EntryKind.PROGRAM:
+                self.setFixedWidth(400)
+            case EntryKind.COLLEGE:
+                self.setFixedWidth(400)
             
-        self.setObjectName("RecordDialog")
+        self.setObjectName('RecordDialog')
         self.setStyleSheet("""
             QDialog#RecordDialog { background-color: #ffffff; }
             QLabel { color: #333333; }
         """)
         
-        title_text = "Edit Record" if self.is_edit_mode else "Add Record"
-        if self.current_directory == StudentDirectory: title_text = title_text.replace("Record", "Student")
-        elif self.current_directory == ProgramDirectory: title_text = title_text.replace("Record", "Program")
-        elif self.current_directory == CollegeDirectory: title_text = title_text.replace("Record", "College")
+        title_text = 'Edit Record' if self.is_edit_mode else 'Add Record'
+        title_text = title_text.replace('Record', self.current_db.get_entry_kind().value)
         self.setWindowTitle(title_text)
         
         self.inputs = {}
@@ -120,8 +211,8 @@ class RecordDialog(QDialog):
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(15)
         
-        columns = self.current_directory.get_columns()
-        primary_key = self.current_directory._db.primary_key
+        columns = self.current_db.get_columns()
+        primary_key = self.current_db._db.primary_key
         
         row_idx = 0
         col_idx = 0
@@ -130,7 +221,7 @@ class RecordDialog(QDialog):
             field_layout = QVBoxLayout()
             field_layout.setSpacing(5)
             
-            label_text = self.current_directory.get_column_display_name(col_name)
+            label_text = self.current_db.get_entry_kind().get_entry_type().get_fields()[col_name].display_name
             
             lbl = QLabel(label_text.upper())
             lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #555555;")
@@ -149,9 +240,17 @@ class RecordDialog(QDialog):
                 disabled_css = """
                     background-color: #f7f7f7 !important;
                     color: #aaaaaa !important;
-                    border: 1px dashed #cccccc !important;
+                    border: 1px solid #cccccc !important;
                 """
-                input_widget.setStyleSheet(input_widget.styleSheet() + f" QLineEdit {{ {disabled_css} }} QComboBox {{ {disabled_css} }}")
+
+                override_css = f"""
+                    QLineEdit {{ {disabled_css} }}
+                    QLineEdit:focus {{ {disabled_css} }}
+                    QComboBox {{ {disabled_css} }}
+                    QComboBox:focus {{ {disabled_css} }}
+                """
+
+                input_widget.setStyleSheet(input_widget.styleSheet() + override_css)
                 input_widget.setCursor(Qt.CursorShape.ForbiddenCursor)
 
             field_layout.addWidget(input_widget)
@@ -174,26 +273,32 @@ class RecordDialog(QDialog):
         main_layout.addSpacing(10)
 
         footer_layout = QHBoxLayout()
-        self.btn_cancel = QPushButton("Cancel")
-        self.btn_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_cancel.setStyleSheet("""
-            QPushButton { background-color: white; border: 1px solid #CCCCCC; border-radius: 4px; padding: 6px 15px; color: #555555; }
-            QPushButton:hover { background-color: #F5F5F5; }
-        """)
-        self.btn_cancel.clicked.connect(self.reject)
-        
-        action_text = "Save" if self.is_edit_mode else "Add"
-        self.btn_action = QPushButton(action_text)
-        self.btn_action.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_action.setStyleSheet("""
-            QPushButton { background-color: #8fae44; border: none; border-radius: 4px; padding: 6px 20px; color: white; font-weight: bold; }
-            QPushButton:hover { background-color: #7a9638; }
-        """)
-        self.btn_action.clicked.connect(self.accept)
+        footer_layout.setSpacing(5)
+
+        self.delete_button = None
+
+        if self.is_edit_mode:
+            self.delete_button = QPushButton('Delete')
+            self.delete_button.setStyleSheet(Styles.action_button(back_color = Constants.DANGER_COLOR, font_size = 11))
+            self.delete_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            self.delete_button.clicked.connect(self.request_delete)
+            footer_layout.addWidget(self.delete_button)
+
+        footer_layout.addStretch()
+
+        self.cancel_button = QPushButton('Cancel')
+        self.cancel_button.setStyleSheet(Styles.action_button(back_color = "#DDDDDD", text_color = '#333333', font_size = 11))
+        self.cancel_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.cancel_button.clicked.connect(self.reject)
+
+        self.action_button = QPushButton('Save' if self.is_edit_mode else 'Add')
+        self.action_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 11))
+        self.action_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.action_button.clicked.connect(self.accept)
         
         footer_layout.addStretch()
-        footer_layout.addWidget(self.btn_cancel)
-        footer_layout.addWidget(self.btn_action)
+        footer_layout.addWidget(self.cancel_button)
+        footer_layout.addWidget(self.action_button)
         main_layout.addLayout(footer_layout)
 
         self.adjustSize()
@@ -202,7 +307,7 @@ class RecordDialog(QDialog):
     def create_input_widget(self, col_name, label_text):
         base_style = """
             border: 1px solid #CCCCCC;
-            border-radius: 4px;
+            border-radius: 10px;
             background-color: white;
             color: #333333;
             font-size: 11px;
@@ -227,14 +332,20 @@ class RecordDialog(QDialog):
                 background-color: white; color: #333333; border: 1px solid #CCCCCC;
                 selection-background-color: #f0f4e6; selection-color: #333333; outline: none;
             }}
+            QComboBox QAbstractItemView::item:selected, QComboBox QAbstractItemView::item:hover {{
+                background-color: #f0f4e6;
+                color: #333333;
+            }}
             QLineEdit {{
                 background: transparent; border: none; padding: 0px; color: #333333; font-size: 11px;
             }}
             QLineEdit::placeholder {{ color: #bbbbbb; }}
+
+            {Styles.combobox_dropdown()}
         """
 
-        placeholder = f"Enter {label_text.lower()}"
-        select_placeholder = f"Select {label_text.lower()}"
+        placeholder = f'Enter {label_text.lower()}'
+        select_placeholder = f'Select {label_text.lower()}'
 
         if col_name == 'gender': 
             cb = SearchableComboBox(['Male', 'Female', 'Other'], select_placeholder)
@@ -242,17 +353,15 @@ class RecordDialog(QDialog):
             return cb
             
         elif col_name == 'year': 
-            cb = SearchableComboBox(['1', '2', '3', '4'], select_placeholder)
+            return YearStepper(min_val = 1, max_val = 4)
+            
+        elif col_name == 'program_code' and self.current_db.get_entry_kind() == EntryKind.STUDENT:
+            cb = SearchableComboBox(sorted(ProgramDirectory.get_keys()), select_placeholder)
             cb.setStyleSheet(combo_style)
             return cb
             
-        elif col_name == 'program_code' and self.current_directory == StudentDirectory:
-            cb = SearchableComboBox([""] + ProgramDirectory.get_keys(), select_placeholder)
-            cb.setStyleSheet(combo_style)
-            return cb
-            
-        elif col_name == 'college_code' and self.current_directory == ProgramDirectory:
-            cb = SearchableComboBox([""] + CollegeDirectory.get_keys(), select_placeholder)
+        elif col_name == 'college_code' and self.current_db.get_entry_kind() == EntryKind.PROGRAM:
+            cb = SearchableComboBox(sorted(CollegeDirectory.get_keys()), select_placeholder)
             cb.setStyleSheet(combo_style)
             return cb
             
@@ -262,13 +371,27 @@ class RecordDialog(QDialog):
             le_style = f"QLineEdit {{ {base_style} padding: 6px 10px; }} QLineEdit{interactive_states} QLineEdit::placeholder {{ color: #bbbbbb; }}"
             le.setStyleSheet(le_style)
             return le
+        
+    def request_delete(self):
+        msg = MessageBox(self, title = 'Confirm Delete', message = 'Are you sure you want to delete this record?\nThis action cannot be undone.')
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        msg.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        result = msg.exec()
+        if result == int(QMessageBox.StandardButton.Yes) or result == QMessageBox.StandardButton.Yes:
+            self.is_deleted = True
+            self.accept()
 
     def populate_data(self):
         if not self.is_edit_mode: return
         for col_name, widget in self.inputs.items():
-            val = str(self.record.get(col_name, ""))
-            if isinstance(widget, QComboBox): widget.setCurrentText(val)
-            elif isinstance(widget, QLineEdit): widget.setText(val)
+            val = str(self.record.get(col_name, ''))
+            if isinstance(widget, QComboBox): 
+                widget.setCurrentText(val)
+            elif isinstance(widget, YearStepper):
+                widget.setText(val)
+            elif isinstance(widget, QLineEdit): 
+                widget.setText(val)
 
     def get_data(self) -> dict:
         data = {}
@@ -276,11 +399,14 @@ class RecordDialog(QDialog):
             val = None
             if isinstance(widget, QComboBox):
                 val = widget.currentText()
-            elif isinstance(widget, QLineEdit):
+            elif isinstance(widget, YearStepper) or isinstance(widget, QLineEdit):
                 val = widget.text()
             else:
                 val = ''
-            data[col_name] = val
+            if col_name == 'year':
+                data[col_name] = int(val)
+            else:
+                data[col_name] = val
         return data
     
         
@@ -323,8 +449,8 @@ class TableModel(QAbstractTableModel):
     
     def headerData(self, section, orientation, role = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._db.get_column_display_name(self._headers[section]).upper()
-        return None        
+            return self._db.get_entry_kind().get_entry_type().get_fields()[self._headers[section]].display_name.upper()
+        return None
 
 class Table(QWidget):
     def __init__(self):
@@ -409,7 +535,7 @@ class ToolBar(QWidget):
         if self.is_edit_mode:
             self.edit_button.setText(' Done')
             self.edit_button.setIcon(IconLoader.get('done-dark'))
-            self.edit_button.setStyleSheet(Styles.action_button(back_color = "#CCCCCC", font_size = 12, text_color = '#333333'))
+            self.edit_button.setStyleSheet(Styles.action_button(back_color = "#DDDDDD", font_size = 12, text_color = '#333333'))
             self.add_button.show()
         else:
             self.edit_button.setText(' Edit')
@@ -621,12 +747,19 @@ class TableCard(Card):
 
         dialog = RecordDialog(self.current_db, record = record, parent = self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_data = dialog.get_data()
-            try:
-                self.current_db.update_record(new_data, key = key_value)
-                self.fetch_data()
-            except Exception as e:
-                self.show_custom_message('Error', f'Failed to update record;\n{str(e)}', is_error = True)
+            if dialog.is_deleted:
+                try:
+                    self.current_db.delete_record(key = key_value)
+                    self.fetch_data()
+                except Exception as e:
+                    self.show_custom_message('Error', f'Failed to delete record\n{str(e)}', is_error = True)
+            else:
+                new_data = dialog.get_data()
+                try:
+                    self.current_db.update_record(new_data, key = key_value)
+                    self.fetch_data()
+                except Exception as e:
+                    self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
 
     def open_add_dialog(self):
         dialog = RecordDialog(self.current_db, record = None, parent = self)
@@ -706,34 +839,9 @@ class TableCard(Card):
         else:
             self.foot_bar.entries_label.setText(f'Showing {visible_count} of {total_matches} entries')
 
-    def show_custom_message(self, title, message, is_error=False):
-        """A beautifully styled, white message box."""
-        msg = QMessageBox(self)
-        msg.setWindowTitle(title)
-        msg.setText(message)
+    def show_custom_message(self, title, message, is_error = False):
+        msg = MessageBox(self, title, message)
         msg.setIcon(QMessageBox.Icon.Critical if is_error else QMessageBox.Icon.Information)
-        
-        # Apply the clean white theme and styled buttons
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: #ffffff;
-            }
-            QLabel {
-                color: #333333;
-                font-size: 12px;
-            }
-            QPushButton {
-                background-color: #8fae44; 
-                border: none; 
-                border-radius: 4px;
-                padding: 6px 20px; 
-                color: white; 
-                font-weight: bold;
-            }
-            QPushButton:hover { 
-                background-color: #7a9638; 
-            }
-        """)
         msg.exec()
 
 class WorkingPage(QWidget):

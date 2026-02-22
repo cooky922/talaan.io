@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QMessageBox,
     QPushButton,
     QStyledItemDelegate,
     QToolButton,
@@ -188,19 +189,23 @@ class SearchableComboBox(QComboBox):
         if self.completer():
             self.completer().setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
             self.completer().setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            
-            # Style the popup list
-            self.completer().popup().setStyleSheet("""
-                QListView { 
+            self.completer().popup().setStyleSheet(f"""
+                QListView {{ 
                     background-color: white; 
-                    color: #333333; 
                     border: 1px solid #CCCCCC; 
-                    selection-background-color: #f0f4e6; 
-                    selection-color: #333333; 
+                    border-radius: 6px; 
                     outline: none; 
                     font-size: 11px; 
-                }
-                QListView::item { padding: 6px; }
+                }}
+                QListView::item {{ 
+                    padding: 8px 10px; 
+                    color: #333333; 
+                }}
+                QListView::item:selected, QListView::item:hover {{ 
+                    background-color: #f0f4e6; 
+                    color: #333333; 
+                    border-radius: 4px; /* Keeps the hover highlight inside the rounded box */
+                }}
             """)
 
     def paintEvent(self, event):
@@ -227,3 +232,31 @@ class SearchableComboBox(QComboBox):
         painter.drawLine(x - 4, y - 2, x, y + 2)
         # Right wing
         painter.drawLine(x, y + 2, x + 4, y - 2)
+
+class MessageBox(QMessageBox):
+    def __init__(self, parent, title, message):
+        msg = QMessageBox(parent)
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setText(message)
+        # Apply the clean white theme and styled buttons
+        self.setStyleSheet("""
+            QMessageBox {
+                background-color: #ffffff;
+            }
+            QLabel {
+                color: #333333;
+                font-size: 12px;
+            }
+            QPushButton {
+                background-color: #8fae44; 
+                border: none; 
+                border-radius: 4px;
+                padding: 6px 20px; 
+                color: white; 
+                font-weight: bold;
+            }
+            QPushButton:hover { 
+                background-color: #7a9638; 
+            }
+        """)

@@ -44,7 +44,7 @@ class StudentEntry:
     
     @staticmethod
     def validate(field : FieldKind, input : str, program_directory = None):
-        if len(input) == 0:
+        if field != StudentEntry.FieldKind.YEAR and len(input) == 0:
             raise ValidationError(EntryKind.STUDENT, field,
                                   ValidationErrorKind.MISSING_FIELD,
                                   field.value.display_name + ' Input is empty')
@@ -88,13 +88,12 @@ class StudentEntry:
                                           'The given program code does not exist')
 
             case StudentEntry.FieldKind.YEAR:
-                if not input.isdigit():
+                if not isinstance(input, int):
                     raise ValidationError(EntryKind.STUDENT,
                                           StudentEntry.FieldKind.YEAR,
                                           ValidationErrorKind.INVALID_FORMAT,
                                           'The input is not a digit')
-                year = int(input)
-                if year < 1 or year > 4:
+                if input < 1 or input > 4:
                     raise ValidationError(EntryKind.STUDENT,
                                           StudentEntry.FieldKind.YEAR,
                                           ValidationErrorKind.INVALID_FORMAT,

@@ -252,6 +252,10 @@ class StudentDirectory:
     _path = Path(__file__).parent.parent.parent / 'data' / 'students.csv'
     _db   = GenericDatabase(_path, primary_key = 'id')
 
+    @staticmethod
+    def get_entry_kind():
+        return EntryKind.STUDENT
+
     @classmethod
     def get_count(self, where: Union[str, Callable] = None) -> int:
         return self._db.get_count(where)
@@ -259,10 +263,6 @@ class StudentDirectory:
     @classmethod
     def get_columns(self) -> List[str]:
         return self._db.get_columns()
-    
-    @classmethod
-    def get_column_display_name(self, col : str) -> str:
-        return StudentEntry.get_fields()[col].display_name
     
     @classmethod
     def get_ids(self) -> List[str]:
@@ -316,6 +316,10 @@ class ProgramDirectory:
     _path = Path(__file__).parent.parent.parent / 'data' / 'programs.csv'
     _db   = GenericDatabase(_path, primary_key = 'program_code')
 
+    @staticmethod
+    def get_entry_kind():
+        return EntryKind.PROGRAM
+
     @classmethod
     def get_count(self, where: Union[str, Callable] = None) -> int:
         return self._db.get_count(where)
@@ -323,10 +327,6 @@ class ProgramDirectory:
     @classmethod
     def get_columns(self) -> List[str]:
         return self._db.get_columns()
-    
-    @classmethod
-    def get_column_display_name(self, col : str) -> str:
-        return ProgramEntry.get_fields()[col].display_name
     
     @classmethod
     def get_programs(self) -> List[str]:
@@ -411,6 +411,10 @@ class CollegeDirectory:
     _path = Path(__file__).parent.parent.parent / 'data' / 'colleges.csv'
     _db   = GenericDatabase(_path, primary_key = 'college_code')
 
+    @staticmethod
+    def get_entry_kind():
+        return EntryKind.COLLEGE
+
     @classmethod
     def get_count(self, where: Union[str, Callable] = None) -> int:
         return self._db.get_count(where)
@@ -418,10 +422,6 @@ class CollegeDirectory:
     @classmethod
     def get_columns(self) -> List[str]:
         return self._db.get_columns()
-    
-    @classmethod
-    def get_column_display_name(self, col : str) -> str:
-        return CollegeEntry.get_fields()[col].display_name
     
     @classmethod
     def get_colleges(self) -> List[str]:

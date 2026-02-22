@@ -9,6 +9,7 @@ def main():
     print('before initialization')
     window = MainWindow()
     print('initialization done')
+
     window.show()
     ret = app.exec()
     StudentDirectory.save()
