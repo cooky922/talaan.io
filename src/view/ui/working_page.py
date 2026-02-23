@@ -37,6 +37,7 @@ from src.view.components import (
     RowHoverDelegate,
     SearchableComboBox,
     TableHeader,
+    ToastNotification,
     MessageBox
 )
 from src.view.ui.login_page import UserRole
@@ -372,7 +373,7 @@ class RecordDialog(QDialog):
             return le
         
     def confirm_rename_changes(self, count, old_key, new_key):
-        message = f'Are you sure you want to rename this {old_key} to {new_key}?\nThis action cannot be undone.'
+        message = f'Are you sure you want to rename this {old_key} to {new_key}?\n\nThis action cannot be undone.'
         if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
             message += f'\nThis also means renaming all {count} student entries\' program code.'
         elif self.current_db.get_entry_kind() == EntryKind.COLLEGE:
@@ -409,7 +410,7 @@ class RecordDialog(QDialog):
             return
         
     def request_delete(self):
-        message = 'Are you sure you want to delete this record?\nThis action cannot be undone.'
+        message = 'Are you sure you want to delete this record?\n\nThis action cannot be undone.'
         input_data = self.get_data()
         if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
             old_program_code = input_data['program_code']
@@ -784,6 +785,9 @@ class TableCard(Card):
         self.sort_state = Sorted.By(col_name, ascending = True)
         self.fetch_data()
 
+        # Toast setup
+        self.toast = ToastNotification(self)
+
     def on_search_triggered(self):
         self.search_text = self.tool_bar.search_bar.text()
         self.current_page = 0
@@ -812,6 +816,7 @@ class TableCard(Card):
                     else:
                         self.current_db.delete_record(key = key_value, action = ConstraintAction.Cascade)
                     self.fetch_data()
+                    self.toast.show_message('row deleted')
                 except Exception as e:
                     self.show_custom_message('Error', f'Failed to delete record\n{str(e)}', is_error = True)
             else:
@@ -822,6 +827,7 @@ class TableCard(Card):
                     else:
                         self.current_db.update_record(new_data, key = key_value, action = ConstraintAction.Cascade)
                     self.fetch_data()
+                    self.toast.show_message('row updated')
                 except Exception as e:
                     self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
 
@@ -832,6 +838,7 @@ class TableCard(Card):
             try:
                 self.current_db.add_record(new_data)
                 self.fetch_data()
+                self.toast.show_message('record added')
             except Exception as e:
                 self.show_custom_message('Error', f'Failed to add record;\n{str(e)}', is_error = True)
 

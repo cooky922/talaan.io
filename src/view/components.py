@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QComboBox,
     QCompleter,
+    QFrame,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -15,8 +17,13 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import (
     Qt, 
+    QEasingCurve,
     QSize,
-    QEvent
+    QEvent,
+    QParallelAnimationGroup,
+    QPoint,
+    QPropertyAnimation,
+    QTimer
 )
 from PyQt6.QtGui import QIcon, QColor, QPen, QPainter
 
@@ -260,3 +267,99 @@ class MessageBox(QMessageBox):
                 background-color: #7a9638; 
             }
         """)
+
+class ToastNotification(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        self.container = QFrame(self)
+        
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.container)
+        
+        container_layout = QHBoxLayout(self.container)
+        container_layout.setContentsMargins(20, 10, 20, 10)
+        
+        self.label = QLabel("")
+        self.label.setStyleSheet("color: white; font-weight: bold; font-size: 12px; background: transparent;")
+        container_layout.addWidget(self.label)
+        
+        # Revert back to the graphics effect for opacity
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+        
+        self.anim_group = None
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.hide_toast)
+        
+        self.hide()
+
+    def show_message(self, message, is_error  = False):
+        self.timer.stop()
+        if self.anim_group:
+            self.anim_group.stop()
+            
+        self.label.setText(message)
+        
+        bg_color = "#ff4c4c" if is_error else "#333333"
+        self.container.setStyleSheet(f"QFrame {{ background-color: {bg_color}; border-radius: 6px; }}")
+        
+        self.adjustSize() 
+        
+        parent_widget = self.parentWidget()
+        x = (parent_widget.width() - self.width()) // 2
+        y = parent_widget.height() - self.height() - 40 
+        
+        start_pos = QPoint(x, y + 20)
+        end_pos = QPoint(x, y)
+        
+        self.move(start_pos) 
+        self.opacity_effect.setOpacity(0.0)
+        
+        self.show()
+        self.raise_()
+        
+        self.anim_group = QParallelAnimationGroup()
+        
+        pos_anim = QPropertyAnimation(self, b"pos")
+        pos_anim.setDuration(400)
+        pos_anim.setStartValue(start_pos)
+        pos_anim.setEndValue(end_pos)
+        pos_anim.setEasingCurve(QEasingCurve.Type.OutCubic) 
+        
+        op_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        op_anim.setDuration(400)
+        op_anim.setStartValue(0.0)
+        op_anim.setEndValue(0.99)
+        
+        self.anim_group.addAnimation(pos_anim)
+        self.anim_group.addAnimation(op_anim)
+        self.anim_group.start()
+        
+        self.timer.start(2500)
+        
+    def hide_toast(self):
+        if self.anim_group:
+            self.anim_group.stop()
+            
+        self.anim_group = QParallelAnimationGroup()
+        
+        pos_anim = QPropertyAnimation(self, b"pos")
+        pos_anim.setDuration(400)
+        pos_anim.setStartValue(self.pos())
+        pos_anim.setEndValue(QPoint(self.pos().x(), self.pos().y() + 20))
+        pos_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        
+        op_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        op_anim.setDuration(400)
+        op_anim.setStartValue(0.99)
+        op_anim.setEndValue(0.0)
+        
+        self.anim_group.addAnimation(pos_anim)
+        self.anim_group.addAnimation(op_anim)
+        self.anim_group.finished.connect(self.hide) 
+        self.anim_group.start()
