@@ -255,10 +255,10 @@ class StudentDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.STUDENT
-
+    
     @classmethod
-    def get_count(self, where: Union[str, Callable] = None) -> int:
-        return self._db.get_count(where)
+    def get_primary_key(self):
+        return self._db.primary_key
     
     @classmethod
     def get_columns(self) -> List[str]:
@@ -275,6 +275,10 @@ class StudentDirectory:
         return self._db.has_key(str)
     
     has_key = has_id
+
+    @classmethod
+    def get_count(self, where: Union[str, Callable] = None) -> int:
+        return self._db.get_count(where)
 
     @classmethod
     def get_records(self, where: Union[str, Callable] = None, sorted: Sorted = None, paged: Paged = None) -> List[dict]:
@@ -319,10 +323,10 @@ class ProgramDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.PROGRAM
-
+    
     @classmethod
-    def get_count(self, where: Union[str, Callable] = None) -> int:
-        return self._db.get_count(where)
+    def get_primary_key(self):
+        return self._db.primary_key
     
     @classmethod
     def get_columns(self) -> List[str]:
@@ -340,6 +344,10 @@ class ProgramDirectory:
         # return key in self.get_programs()
 
     has_key = has_program
+
+    @classmethod
+    def get_count(self, where: Union[str, Callable] = None) -> int:
+        return self._db.get_count(where)
 
     @classmethod
     def get_records(self, where : Union[str, Callable] = None, sorted : Sorted = None, paged : Paged = None) -> List[dict]:
@@ -363,12 +371,14 @@ class ProgramDirectory:
     @classmethod
     def update_record(self, updates : dict[str, str], *, index : int = None, key : str = None, action : ConstraintAction = ConstraintAction.Restrict):
         ProgramEntry.validate_entry(updates, requires_all = False, college_directory = CollegeDirectory)
+        count = 1
         old_program_code = self.get_record(index = index, key = key)['program_code']
         new_program_code = old_program_code
         if 'program_code' in updates:
             new_program_code = updates['program_code']
+        self._db.update_record(updates, index = index, key = key)
         if new_program_code != old_program_code:
-            for student_record in StudentDirectory.get_records(where = f'program_code == {old_program_code}'):
+            for student_record in StudentDirectory.get_records(where = f'program_code == \'{old_program_code}\''):
                 match action:
                     # renames all student record's program_code to its new name
                     case ConstraintAction.Cascade:
@@ -379,7 +389,8 @@ class ProgramDirectory:
 
                     case ConstraintAction.Restrict:
                         raise ValueError('...')
-        self._db.update_record(updates, index = index, key = key)
+                count = count + 1
+        return count
 
     @classmethod
     def delete_records(self, where: Union[str, Callable]):
@@ -388,8 +399,9 @@ class ProgramDirectory:
 
     @classmethod
     def delete_record(self, *, index: int = None, key: str = None, action : ConstraintAction = ConstraintAction.Restrict):
+        count = 1
         program_code = self.get_record(index = index, key = key)['program_code']
-        for student_record in StudentDirectory.get_records(where = f'program_code == {program_code}'):
+        for student_record in StudentDirectory.get_records(where = f'program_code == \'{program_code}\''):
             match action:
                 # deletes all records referring to the same program_code
                 case ConstraintAction.Cascade:
@@ -400,7 +412,9 @@ class ProgramDirectory:
 
                 case ConstraintAction.Restrict:
                     raise ValueError('...')
+            count = count + 1
         self._db.delete_record(index = index, key = key)
+        return count
 
     @classmethod
     def save(self):
@@ -414,10 +428,10 @@ class CollegeDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.COLLEGE
-
+    
     @classmethod
-    def get_count(self, where: Union[str, Callable] = None) -> int:
-        return self._db.get_count(where)
+    def get_primary_key(self):
+        return self._db.primary_key
     
     @classmethod
     def get_columns(self) -> List[str]:
@@ -434,6 +448,10 @@ class CollegeDirectory:
         return self._db.has_key(key)
     
     has_key = has_college
+
+    @classmethod
+    def get_count(self, where: Union[str, Callable] = None) -> int:
+        return self._db.get_count(where)
 
     @classmethod
     def get_records(self, where : Union[str, Callable] = None, sorted: Sorted = None, paged : Paged = None) -> List[dict]:
@@ -456,12 +474,16 @@ class CollegeDirectory:
     @classmethod
     def update_record(self, updates : dict[str, str], *, index : int = None, key : str = None, action : ConstraintAction = ConstraintAction.Restrict):
         CollegeEntry.validate_entry(updates, requires_all = False)
+        count = 1
         old_college_code = self.get_record(index = index, key = key)['college_code']
         new_college_code = old_college_code
         if 'college_code' in updates:
             new_college_code = updates['college_code']
+        self._db.update_record(updates, index = index, key = key)
+        print('renaming ... 1')
         if new_college_code != old_college_code:
-            for program_record in ProgramDirectory.get_records(where = f'program_code == {old_college_code}'):
+            print('renaming ... 2')
+            for program_record in ProgramDirectory.get_records(where = f'college_code == \'{old_college_code}\''):
                 match action:
                     case ConstraintAction.Cascade:
                         ProgramDirectory.update_record({'college_code' : new_college_code}, key = program_record['program_code'])
@@ -471,7 +493,8 @@ class CollegeDirectory:
 
                     case ConstraintAction.Restrict:
                         raise ValueError('...')
-        self._db.update_record(updates, index = index, key = key)
+                count = count + 1
+        return count
 
     @classmethod
     def delete_records(self, where: Union[str, Callable]):
@@ -479,8 +502,9 @@ class CollegeDirectory:
 
     @classmethod
     def delete_record(self, *, index: int = None, key: str = None, action : ConstraintAction = ConstraintAction.Restrict):
+        count = 1
         college_code = self.get_record(index = index, key = key)['college_code']
-        for program_record in ProgramDirectory.get_records(where = f'college_code == {college_code}'):
+        for program_record in ProgramDirectory.get_records(where = f'college_code == \'{college_code}\''):
             match action:
                 # deletes all records referring to the same college_code
                 case ConstraintAction.Cascade:
@@ -491,7 +515,9 @@ class CollegeDirectory:
 
                 case ConstraintAction.Restrict:
                     raise ValueError('...')
+            count = count + 1
         self._db.delete_record(index = index, key = key)
+        return count
 
     @classmethod
     def save(self):

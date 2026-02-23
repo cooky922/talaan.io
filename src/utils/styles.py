@@ -272,8 +272,10 @@ class Styles:
                 color: #888888;
                 border: 1px solid transparent;
                 border-radius: 12px;
+                min-width: 24px;
+                min-height: 24px;
                 font-weight: bold;
-                font-size: 13px;
+                font-size: 12px;
                 margin: 0px 2px;
             }}
             QPushButton#PageButton:hover:!disabled {{

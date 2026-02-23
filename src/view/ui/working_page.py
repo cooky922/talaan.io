@@ -23,7 +23,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QColor, QCursor
 
-from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, Paged, Sorted
+from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, ConstraintAction, Paged, Sorted
 from src.model.entries import EntryKind
 from src.utils.constants import Constants
 from src.utils.styles import Styles
@@ -230,7 +230,8 @@ class RecordDialog(QDialog):
             # Pass the label_text to create placeholders!
             input_widget = self.create_input_widget(col_name, label_text)
             
-            if self.is_edit_mode and col_name == primary_key:
+            # Only lock the id if we are editing a student entry
+            if self.is_edit_mode and col_name == primary_key and self.current_db.get_entry_kind() == EntryKind.STUDENT:
                 if isinstance(input_widget, QComboBox):
                     input_widget.setEnabled(False)
                 else:
@@ -294,7 +295,7 @@ class RecordDialog(QDialog):
         self.action_button = QPushButton('Save' if self.is_edit_mode else 'Add')
         self.action_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 11))
         self.action_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.action_button.clicked.connect(self.accept)
+        self.action_button.clicked.connect(self.request_proceed)
         
         footer_layout.addStretch()
         footer_layout.addWidget(self.cancel_button)
@@ -372,8 +373,64 @@ class RecordDialog(QDialog):
             le.setStyleSheet(le_style)
             return le
         
+    def confirm_rename_changes(self, count, old_key, new_key):
+        message = f'Are you sure you want to rename this {old_key} to {new_key}?\nThis action cannot be undone.'
+        if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
+            message += f'\nThis also means renaming all {count} student entries\' program code.'
+        elif self.current_db.get_entry_kind() == EntryKind.COLLEGE:
+            message += f'\nThis also means renaming all {count} program entries\' college code.'
+
+        msg = MessageBox(self, title = 'Confirm Rename', message = message)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        msg.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return msg.exec()
+        
+    def request_proceed(self):
+        if not self.is_edit_mode:
+            self.accept()
+            return
+        new_data = self.get_data()
+        primary_key = self.current_db.get_primary_key()
+        old_key_value = self.record[primary_key]
+        new_key_value = new_data[primary_key]
+        count = 0
+        if old_key_value != new_key_value:
+            if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
+                count = StudentDirectory.get_count(where = f'program_code == \'{old_key_value}\'')
+            elif self.current_db.get_entry_kind() == EntryKind.COLLEGE:
+                count = ProgramDirectory.get_count(where = f'college_code == \'{old_key_value}\'')
+        if count > 0:
+            result = self.confirm_rename_changes(count, old_key_value, new_key_value)
+            if result == int(QMessageBox.StandardButton.Yes) or result == QMessageBox.StandardButton.Yes:
+                self.accept()
+            else:
+                self.reject()
+        else:
+            self.accept()
+            return
+        
     def request_delete(self):
-        msg = MessageBox(self, title = 'Confirm Delete', message = 'Are you sure you want to delete this record?\nThis action cannot be undone.')
+        message = 'Are you sure you want to delete this record?\nThis action cannot be undone.'
+        input_data = self.get_data()
+        if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
+            old_program_code = input_data['program_code']
+            count = StudentDirectory.get_count(where = f'program_code == \'{old_program_code}\'')
+            if count > 0:
+                message += f'\nThis also means deleting {count} student entries with program code {old_program_code}.'
+        elif self.current_db.get_entry_kind() == EntryKind.COLLEGE:
+            old_college_code = input_data['college_code']
+            program_list = ProgramDirectory.get_records(where = f'college_code == \'{old_college_code}\'')
+            program_count = len(program_list)
+            if program_count > 0:
+                message += f'\nThis also means deleting {program_count} program entries with college code {old_college_code}.'
+                count = 0
+                for program_entry in program_list:
+                    student_count = StudentDirectory.get_count(where = f'program_code == \'{program_entry['program_code']}\'')
+                    count = count + student_count
+                if count > 0:
+                    message += f'\nThis also means deleting {count} student entries associated with the college code.'
+        msg = MessageBox(self, title = 'Confirm Delete', message = message)
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
         msg.setDefaultButton(QMessageBox.StandardButton.Cancel)
@@ -509,7 +566,7 @@ class ToolBar(QWidget):
         self.search_bar.setClearButtonEnabled(True)
         self.search_bar.addAction(IconLoader.get('search-dark'), QLineEdit.ActionPosition.LeadingPosition)
 
-        self.add_button = QPushButton(' Add')
+        self.add_button = QPushButton(' Add Student')
         self.add_button.setIcon(IconLoader.get('add-light'))
         self.add_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
         self.add_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -549,7 +606,7 @@ class PaginationControl(QWidget):
     # Custom signal that alerts the main page to fetch new data chunks
     page_changed = pyqtSignal(int)
 
-    def __init__(self, items_per_page=100):
+    def __init__(self, items_per_page = 100):
         super().__init__()
         self.items_per_page = items_per_page
         self.current_page = 0
@@ -562,8 +619,7 @@ class PaginationControl(QWidget):
         self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.lbl_entries = InfoLabel("Page 1 out of 1", color = Constants.TEXT_SECONDARY_COLOR)
-        # self.lbl_entries.setStyleSheet("color: #888888; font-weight: bold; font-size: 13px;")
+        self.lbl_entries = InfoLabel('Page 1 out of 1', color = Constants.TEXT_SECONDARY_COLOR)
 
         self.page_btn_layout = QHBoxLayout()
         self.page_btn_layout.setSpacing(2)
@@ -594,7 +650,7 @@ class PaginationControl(QWidget):
         total_pages = math.ceil(self.total_rows / self.items_per_page)
         if total_pages == 0: total_pages = 1
 
-        self.lbl_entries.setText(f"Page {self.current_page + 1} out of {total_pages}")
+        self.lbl_entries.setText(f'Page {self.current_page + 1} out of {total_pages}')
 
         for i in reversed(range(self.page_btn_layout.count())):
             item = self.page_btn_layout.itemAt(i)
@@ -603,7 +659,7 @@ class PaginationControl(QWidget):
 
         btn_prev = QPushButton()
         btn_prev.setIcon(IconLoader.get('arrow-backward-gray'))
-        btn_prev.setObjectName("NavArrow")
+        btn_prev.setObjectName('NavArrow')
         btn_prev.setFixedSize(25, 25)
         btn_prev.setEnabled(self.current_page > 0)
         btn_prev.clicked.connect(lambda: self.go_to_page(self.current_page - 1))
@@ -749,14 +805,20 @@ class TableCard(Card):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             if dialog.is_deleted:
                 try:
-                    self.current_db.delete_record(key = key_value)
+                    if self.current_db.get_entry_kind() == EntryKind.STUDENT:
+                        self.current_db.delete_record(key = key_value)
+                    else:
+                        self.current_db.delete_record(key = key_value, action = ConstraintAction.Cascade)
                     self.fetch_data()
                 except Exception as e:
                     self.show_custom_message('Error', f'Failed to delete record\n{str(e)}', is_error = True)
             else:
                 new_data = dialog.get_data()
                 try:
-                    self.current_db.update_record(new_data, key = key_value)
+                    if self.current_db.get_entry_kind() ==  EntryKind.STUDENT:
+                        self.current_db.update_record(new_data, key = key_value)
+                    else:
+                        self.current_db.update_record(new_data, key = key_value, action = ConstraintAction.Cascade)
                     self.fetch_data()
                 except Exception as e:
                     self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
@@ -797,6 +859,8 @@ class TableCard(Card):
             case 0: self.current_db = StudentDirectory
             case 1: self.current_db = ProgramDirectory
             case 2: self.current_db = CollegeDirectory
+
+        self.tool_bar.add_button.setText(' Add ' + self.current_db.get_entry_kind().value)
 
         self.table_view.table_model.set_database(self.current_db)
         self.table_view.custom_header.blockSignals(True)
