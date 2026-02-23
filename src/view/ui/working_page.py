@@ -41,11 +41,12 @@ from src.view.components import (
 )
 from src.view.ui.login_page import UserRole
 
-import traceback
-
 class DirectoryToggleBox(ToggleBox):
     def __init__(self):
         super().__init__(['Students', 'Programs', 'Colleges'], mini = True)
+
+    def set_default(self):
+        self.group.buttons()[0].setChecked(True)
 
 class Header(QWidget):
     def __init__(self, signal):
@@ -83,9 +84,6 @@ class Header(QWidget):
         layout.addSpacing(5)
         layout.addWidget(self.logout_button, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addSpacing(10)
-
-from PyQt6.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton
-from PyQt6.QtCore import Qt
 
 class YearStepper(QLineEdit):
     def __init__(self, min_val = 1, max_val = 5, parent = None):
@@ -601,6 +599,10 @@ class ToolBar(QWidget):
             self.add_button.hide()
         self.edit_mode_toggled.emit(self.is_edit_mode)
 
+    def reset_mode(self):
+        if self.is_edit_mode:
+            self.toggle_mode()
+
 
 class PaginationControl(QWidget):
     # Custom signal that alerts the main page to fetch new data chunks
@@ -944,3 +946,8 @@ class WorkingPage(QWidget):
             self.table_card.tool_bar.edit_button.show()
         elif role == UserRole.VIEWER:
             self.table_card.tool_bar.edit_button.hide()
+
+    def set_default(self):
+        self.header.directory_toggle_box.set_default()
+        self.table_card.tool_bar.reset_mode()
+        self.table_card.switch_table(0)

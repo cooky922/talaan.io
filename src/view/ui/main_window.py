@@ -53,4 +53,5 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def on_logout(self):
+        self.working_page.set_default()
         self.view.setCurrentIndex(0)
