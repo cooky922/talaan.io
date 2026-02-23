@@ -71,6 +71,7 @@ class Header(QWidget):
         self.directory_toggle_box = DirectoryToggleBox()
 
         self.logout_button = QPushButton('Logout')
+        self.logout_button.setIcon(IconLoader.get('logout-light'))
         self.logout_button.setStyleSheet(Styles.action_button(back_color = Constants.LOGOUT_BUTTON_COLOR, font_size = 12))
         self.logout_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.logout_button.clicked.connect(self.logout_signal)
@@ -279,6 +280,7 @@ class RecordDialog(QDialog):
 
         if self.is_edit_mode:
             self.delete_button = QPushButton('Delete')
+            self.delete_button.setIcon(IconLoader.get('delete-light'))
             self.delete_button.setStyleSheet(Styles.action_button(back_color = Constants.DANGER_COLOR, font_size = 11))
             self.delete_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             self.delete_button.clicked.connect(self.request_delete)

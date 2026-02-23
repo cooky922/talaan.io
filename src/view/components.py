@@ -29,6 +29,7 @@ from PyQt6.QtGui import QIcon, QColor, QPen, QPainter
 
 from src.utils.icon_loader import IconLoader
 from src.utils.styles import Styles
+from src.utils.constants import Constants
 
 class TitleLabel(QLabel):
     def __init__(self, text, fontSize = 45):
@@ -247,25 +248,15 @@ class MessageBox(QMessageBox):
         self.setWindowTitle(title)
         self.setText(message)
         # Apply the clean white theme and styled buttons
-        self.setStyleSheet("""
-            QMessageBox {
+        self.setStyleSheet(f"""
+            QMessageBox {{
                 background-color: #ffffff;
-            }
-            QLabel {
+            }}
+            QLabel {{
                 color: #333333;
                 font-size: 12px;
-            }
-            QPushButton {
-                background-color: #8fae44; 
-                border: none; 
-                border-radius: 4px;
-                padding: 6px 20px; 
-                color: white; 
-                font-weight: bold;
-            }
-            QPushButton:hover { 
-                background-color: #7a9638; 
-            }
+            }}
+            {Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12)}
         """)
 
 class ToastNotification(QWidget):

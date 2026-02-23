@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
           | Qt.WindowType.WindowMinimizeButtonHint
         )
         self.setFixedSize(750, 450)
-        self.setWindowTitle('talaan.io')
+        self.setWindowTitle('talaan.io - Simple Student Information System')
         icon_path = Path(__file__).parent.parent.parent.parent / 'assets' / 'images' / 'icons' / 'app-logo.ico'
         self.setWindowIcon(QIcon(str(icon_path)))
 
