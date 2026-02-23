@@ -733,7 +733,7 @@ class PaginationControl(QWidget):
         self.page_btn_layout.setSpacing(2)
 
         self.main_layout.addWidget(self.lbl_entries)
-        self.main_layout.addStretch() 
+        self.main_layout.addSpacing(10)
         self.main_layout.addLayout(self.page_btn_layout)
 
     def update_data_stats(self, total_rows):
@@ -769,6 +769,7 @@ class PaginationControl(QWidget):
         btn_prev.setIcon(IconLoader.get('arrow-backward-gray'))
         btn_prev.setObjectName('NavArrow')
         btn_prev.setFixedSize(25, 25)
+        btn_prev.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         btn_prev.setEnabled(self.current_page > 0)
         btn_prev.clicked.connect(lambda: self.go_to_page(self.current_page - 1))
         self.page_btn_layout.addWidget(btn_prev)
@@ -797,6 +798,7 @@ class PaginationControl(QWidget):
         btn_next.setIcon(IconLoader.get('arrow-forward-gray'))
         btn_next.setObjectName('NavArrow')
         btn_next.setFixedSize(25, 25)
+        btn_next.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         btn_next.setEnabled(self.current_page < total_pages - 1)
         btn_next.clicked.connect(lambda: self.go_to_page(self.current_page + 1))
         self.page_btn_layout.addWidget(btn_next)
@@ -805,6 +807,7 @@ class PaginationControl(QWidget):
         btn = QPushButton(str(page_num + 1))
         btn.setObjectName('PageButton')
         btn.setFixedSize(25, 25)
+        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         btn.setProperty('active', page_num == self.current_page)
         btn.style().unpolish(btn)
         btn.style().polish(btn)
@@ -812,7 +815,7 @@ class PaginationControl(QWidget):
         self.page_btn_layout.addWidget(btn)
 
     def _add_dots(self):
-        lbl = InfoLabel('...', color = Constants.TEXT_SECONDARY_COLOR)
+        lbl = InfoLabel('. . .', color = Constants.TEXT_SECONDARY_COLOR)
         lbl.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
         self.page_btn_layout.addWidget(lbl)
 
@@ -842,7 +845,8 @@ class FootBar(QWidget):
 
 class TableCard(Card):
     def __init__(self):
-        super().__init__('TableCard', fixed_size = QSize(700, 350))
+        super().__init__('TableCard', size = QSize(700, 350))
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         table_layout = QVBoxLayout()
         table_layout.setSpacing(4)
@@ -1045,11 +1049,14 @@ class WorkingPage(QWidget):
         self.table_card = TableCard()
         self.header.directory_toggle_box.group.idClicked.connect(self.table_card.switch_table)
 
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(40, 0, 40, 40)
+        content_layout.addWidget(self.table_card)
+
         # Structure
         layout.addWidget(self.header)
         layout.addSpacing(10)
-        layout.addWidget(self.table_card, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addStretch()
+        layout.addLayout(content_layout)
 
     def set_role(self, role : UserRole):
         self.role = role

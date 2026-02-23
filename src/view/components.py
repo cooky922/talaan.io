@@ -90,9 +90,12 @@ class ToggleBox(QWidget):
         layout.addLayout(button_layout)
 
 class Card(QWidget):
-    def __init__(self, id_name, fixed_size : QSize):
+    def __init__(self, id_name, size : QSize):
         super().__init__()
-        self.setFixedSize(fixed_size)
+        if id_name == 'TableCard':
+            self.setMinimumSize(size)
+        else:
+            self.setFixedSize(size)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName(id_name)
         self.setStyleSheet(Styles.card(id_name))
@@ -127,6 +130,7 @@ class TableHeader(QHeaderView):
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
         self.setMouseTracking(True)
+        self.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)

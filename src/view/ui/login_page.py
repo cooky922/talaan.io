@@ -36,7 +36,7 @@ class UserRoleToggleBox(ToggleBox):
 
 class LoginCard(Card):
     def __init__(self, signal):
-        super().__init__('LoginCard', fixed_size = QSize(250, 225))
+        super().__init__('LoginCard', size = QSize(250, 225))
         self.login_signal = signal
 
         login_layout = QVBoxLayout()

@@ -216,7 +216,7 @@ class Styles:
             background-color: transparent;
             border: none;
             border-bottom: 2px solid #cccccc; /* Bottom border of the header row */
-            padding: 10px 25px 10px 10px;
+            padding: 10px 30px 10px 10px;
             font-weight: bold;
             font-size: 11px;
             text-align: left;
@@ -285,6 +285,10 @@ class Styles:
                 color: #444444;
             }}
             QPushButton#PageButton[active="true"] {{
+                background-color: #8fae44; 
+                color: white;
+            }}
+            QPushButton#PageButton:hover[active="true"] {{
                 background-color: #8fae44; 
                 color: white;
             }}
