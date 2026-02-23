@@ -25,7 +25,7 @@ from PyQt6.QtCore import (
     QPropertyAnimation,
     QTimer
 )
-from PyQt6.QtGui import QIcon, QColor, QPen, QPainter
+from PyQt6.QtGui import QIcon, QColor, QPen, QPainter, QCursor
 
 from src.utils.icon_loader import IconLoader
 from src.utils.font_loader import FontLoader
@@ -268,8 +268,33 @@ class MessageBox(QMessageBox):
                 font-size: 12px;
                 font-family: {FontLoader.get('default')}
             }}
-            {Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12)}
         """)
+
+    def exec(self):
+        btn_yes = self.button(QMessageBox.StandardButton.Yes)
+        if btn_yes:
+            btn_yes.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            if self.icon() == QMessageBox.Icon.Warning:
+                btn_yes.setStyleSheet(Styles.action_button(back_color=Constants.DANGER_COLOR, font_size=11))
+            else:
+                btn_yes.setStyleSheet(Styles.action_button(back_color=Constants.ACTIVE_BUTTON_COLOR, font_size=11))
+
+        btn_cancel = self.button(QMessageBox.StandardButton.Cancel)
+        if btn_cancel:
+            btn_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_cancel.setStyleSheet(Styles.action_button(
+                back_color=Constants.BUTTON_SECONDARY_COLOR, 
+                text_color='#333333', 
+                font_size=11, 
+                bordered=True
+            ))
+            
+        btn_ok = self.button(QMessageBox.StandardButton.Ok)
+        if btn_ok:
+            btn_ok.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_ok.setStyleSheet(Styles.action_button(back_color=Constants.ACTIVE_BUTTON_COLOR, font_size=11))
+
+        return super().exec()
 
 class ToastNotification(QWidget):
     def __init__(self, parent):

@@ -40,7 +40,7 @@ class Styles:
                 color: {text_color};
                 font-size: {font_size}px;
                 border-radius: 15px;
-                {f'border: 1px solid {border_color};' if bordered else ''}
+                {f'border: 1px solid {border_color};' if bordered else 'border: none;'}
                 padding: 10px;
                 font-weight: bold;
             }}
