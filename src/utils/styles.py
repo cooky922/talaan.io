@@ -30,20 +30,22 @@ class Styles:
         return f'font-size: {fontSize}px; font-weight: bold; color: black; font-family: {FontLoader.get("title")};'
     
     @staticmethod 
-    def action_button(back_color = 'black', text_color = 'white', font_size = 14):
+    def action_button(back_color = 'black', text_color = 'white', font_size = 14, bordered = False, id = None):
         qcolor = QColor(back_color)
-        hover_color = '#333' if qcolor.lightness() == 0 else qcolor.lighter(110).name()
+        hover_color = '#333' if qcolor.lightness() == 0 else (qcolor.darker(110).name() if qcolor.lightness() >= 220 else qcolor.lighter(110).name())
+        border_color = qcolor.darker(120).name()
         return f"""
-            QPushButton {{
+            QPushButton{f'#{id}' if id is not None else ''} {{
                 background-color: {back_color};
                 color: {text_color};
                 font-size: {font_size}px;
                 border-radius: 15px;
+                {f'border: 1px solid {border_color};' if bordered else ''}
                 padding: 10px;
                 font-weight: bold;
             }}
-            QPushButton:hover {{
-                background-color: {hover_color};
+            QPushButton:hover{f'#{id}' if id is not None else ''} {{
+                background-color: {hover_color if back_color != 'transparent' else back_color};
             }}
             """
     

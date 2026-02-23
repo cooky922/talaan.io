@@ -3,6 +3,7 @@ from pathlib import Path
 
 @dataclass(frozen = True, init = False)
 class Constants:
+    TEXT_PRIMARY_COLOR = '#333333'
     TEXT_SECONDARY_COLOR = '#999999'
 
     BACKGROUND_COLOR = "#E6FF76"
@@ -11,6 +12,8 @@ class Constants:
     ACTIVE_BUTTON_COLOR = '#93A932'
     ACTIVE_BUTTON_BORDER_COLOR = '#687B11'
     DANGER_COLOR = '#F45742'
+
+    BUTTON_SECONDARY_COLOR = '#EFEFEF'
 
     CARD_COLOR = '#FFFFFF'
     CARD_SHADOW_COLOR = "#EBEBEB"

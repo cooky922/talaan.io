@@ -12,7 +12,7 @@ from src.view.ui.login_page import UserRole, LoginPage
 from src.view.ui.working_page import WorkingPage
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, app):
         super().__init__()
         self.setWindowFlags(
             Qt.WindowType.Window
@@ -21,6 +21,7 @@ class MainWindow(QMainWindow):
           | Qt.WindowType.WindowCloseButtonHint
           | Qt.WindowType.WindowMinimizeButtonHint
         )
+        # self.setMinimumSize(750, 450)
         self.setFixedSize(750, 450)
         self.setWindowTitle('talaan.io - Simple Student Information System')
         icon_path = Path(__file__).parent.parent.parent.parent / 'assets' / 'images' / 'icons' / 'app-logo.ico'
@@ -28,6 +29,7 @@ class MainWindow(QMainWindow):
 
         # Load fonts
         FontLoader.load()
+        FontLoader.add_default(app.font().family())
         IconLoader.load()
 
         # Structure

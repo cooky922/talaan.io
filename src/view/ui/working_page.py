@@ -7,11 +7,13 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSizePolicy,
     QTableView,
     QWidget, 
+    QWidgetAction,
     QVBoxLayout
 )
 from PyQt6.QtCore import (
@@ -21,7 +23,7 @@ from PyQt6.QtCore import (
     pyqtSignal, 
     QTimer
 )
-from PyQt6.QtGui import QColor, QCursor
+from PyQt6.QtGui import QColor, QCursor, QAction
 
 from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, ConstraintAction, Paged, Sorted
 from src.model.entries import EntryKind
@@ -49,6 +51,103 @@ class DirectoryToggleBox(ToggleBox):
     def set_default(self):
         self.group.buttons()[0].setChecked(True)
 
+class AccountButton(QPushButton):
+    logout_requested = pyqtSignal()
+    settings_requested = pyqtSignal()
+
+    def __init__(self, role : UserRole, parent = None):
+        super().__init__('', parent)
+        self.setMinimumWidth(100)
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 0, 10, 0)
+        layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.role_label = QLabel(role.value)
+        self.role_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.role_label.setStyleSheet(Styles.info_label(bold = True, color = Constants.TEXT_PRIMARY_COLOR))
+        self.role_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
+        self.icon_label = QLabel()
+        self.icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.icon_label.setStyleSheet('background: transparent;')
+
+        pixmap = IconLoader.get('account-dark').pixmap(QSize(24, 24))
+        self.icon_label.setPixmap(pixmap)
+
+        layout.addWidget(self.role_label)
+        layout.addWidget(self.icon_label)
+
+        # Account menu
+        self.account_menu = QMenu(self)
+        self.account_menu.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.account_menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        ## Settings button
+        self.settings_action = QWidgetAction(self)
+        self.settings_button = QPushButton(' Settings')
+        self.settings_button.setIcon(IconLoader.get('settings-dark'))
+        self.settings_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.settings_button.setStyleSheet(Styles.action_button(back_color = 'transparent', text_color = Constants.TEXT_PRIMARY_COLOR, font_size = 11))
+        self.settings_button.clicked.connect(self.trigger_settings)
+
+        self.settings_action.setDefaultWidget(self.settings_button)
+        self.account_menu.addAction(self.settings_action)
+
+        self.account_menu.addSeparator()
+
+        ## Logout button
+        self.logout_action = QWidgetAction(self)
+        self.logout_button = QPushButton(' Logout')
+        self.logout_button.setIcon(IconLoader.get('logout-light'))
+        self.logout_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.logout_button.setStyleSheet(Styles.action_button(back_color = Constants.DANGER_COLOR, font_size = 11))
+        self.logout_button.clicked.connect(self.trigger_logout)
+
+        self.logout_action.setDefaultWidget(self.logout_button)
+        self.account_menu.addAction(self.logout_action)
+
+        self.setMenu(self.account_menu)
+
+        self.setObjectName('AccountButton')
+        self.setStyleSheet(f"""
+            {Styles.action_button(
+                back_color = Constants.HEADER_BUTTON_COLOR, 
+                font_size = 12, 
+                text_color = Constants.TEXT_PRIMARY_COLOR, 
+                bordered = True,
+                id = 'AccountButton')}
+            QPushButton#AccountButton::menu-indicator {{ image: none; }}
+        """)
+
+        self.account_menu.setStyleSheet("""
+            QMenu {
+                background-color: white;
+                border: 1px solid #CCCCCC;
+                border-radius: 10px;
+                padding: 4px 10px; 
+            }
+            QMenu::item {
+                padding: 8px 10px; 
+                color: #333333;
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+
+    def trigger_logout(self):
+        self.account_menu.close()
+        self.logout_requested.emit()
+
+    def trigger_settings(self):
+        self.account_menu.close()
+        self.settings_requested.emit()
+
+    def setRole(self, role : UserRole):
+        self.role_label.setText(role.value)
+
 class Header(QWidget):
     def __init__(self, signal):
         super().__init__()
@@ -66,25 +165,29 @@ class Header(QWidget):
 
         # Elements
         self.title_label = TitleLabel('talaan.io', fontSize = 24)
-        self.role_label = InfoLabel('Viewer', fontSize = 12, bold = True)
+        # self.role_label = InfoLabel('Viewer', fontSize = 12, bold = True)
 
         self.directory_toggle_box = DirectoryToggleBox()
 
-        self.logout_button = QPushButton('Logout')
-        self.logout_button.setIcon(IconLoader.get('logout-light'))
-        self.logout_button.setStyleSheet(Styles.action_button(back_color = Constants.LOGOUT_BUTTON_COLOR, font_size = 12))
-        self.logout_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.logout_button.clicked.connect(self.logout_signal)
+        self.account_button = AccountButton(role = UserRole.VIEWER)
+        self.account_button.logout_requested.connect(self.logout_signal)
 
-        # Structure 
+        # self.logout_button = QPushButton('Logout')
+        # self.logout_button.setIcon(IconLoader.get('logout-light'))
+        # self.logout_button.setStyleSheet(Styles.action_button(back_color = Constants.LOGOUT_BUTTON_COLOR, font_size = 12))
+        # self.logout_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        # self.logout_button.clicked.connect(self.logout_signal)
+
+        # Structure
         layout.addSpacing(10)
-        layout.addWidget(self.title_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.title_label, alignment = Qt.AlignmentFlag.AlignLeft)
         layout.addStretch()
-        layout.addWidget(self.directory_toggle_box, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.directory_toggle_box, alignment = Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
-        layout.addWidget(self.role_label, alignment=Qt.AlignmentFlag.AlignRight)
-        layout.addSpacing(5)
-        layout.addWidget(self.logout_button, alignment=Qt.AlignmentFlag.AlignRight)
+        # layout.addWidget(self.role_label, alignment = Qt.AlignmentFlag.AlignRight)
+        # layout.addSpacing(5)
+        # layout.addWidget(self.logout_button, alignment = Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.account_button, alignment = Qt.AlignmentFlag.AlignRight)
         layout.addSpacing(10)
 
 class YearStepper(QLineEdit):
@@ -289,7 +392,7 @@ class EntryDialog(QDialog):
         footer_layout.addStretch()
 
         self.cancel_button = QPushButton('Cancel')
-        self.cancel_button.setStyleSheet(Styles.action_button(back_color = "#DDDDDD", text_color = '#333333', font_size = 11))
+        self.cancel_button.setStyleSheet(Styles.action_button(back_color = Constants.BUTTON_SECONDARY_COLOR, text_color = '#333333', font_size = 11, bordered = True))
         self.cancel_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.cancel_button.clicked.connect(self.reject)
 
@@ -593,7 +696,7 @@ class ToolBar(QWidget):
         if self.is_edit_mode:
             self.edit_button.setText(' Done')
             self.edit_button.setIcon(IconLoader.get('done-dark'))
-            self.edit_button.setStyleSheet(Styles.action_button(back_color = "#DDDDDD", font_size = 12, text_color = '#333333'))
+            self.edit_button.setStyleSheet(Styles.action_button(back_color = Constants.BUTTON_SECONDARY_COLOR, font_size = 12, text_color = '#333333', bordered = True))
             self.add_button.show()
         else:
             self.edit_button.setText(' Edit')
@@ -950,7 +1053,7 @@ class WorkingPage(QWidget):
 
     def set_role(self, role : UserRole):
         self.role = role
-        self.header.role_label.setText(role.value)
+        self.header.account_button.setRole(role)
         if role == UserRole.ADMIN:
             self.table_card.tool_bar.edit_button.show()
         elif role == UserRole.VIEWER:

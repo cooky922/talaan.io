@@ -28,6 +28,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QIcon, QColor, QPen, QPainter
 
 from src.utils.icon_loader import IconLoader
+from src.utils.font_loader import FontLoader
 from src.utils.styles import Styles
 from src.utils.constants import Constants
 
@@ -255,6 +256,7 @@ class MessageBox(QMessageBox):
             QLabel {{
                 color: #333333;
                 font-size: 12px;
+                font-family: {FontLoader.get('default')}
             }}
             {Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12)}
         """)
