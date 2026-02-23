@@ -189,6 +189,12 @@ class TableHeader(QHeaderView):
 
         painter.restore()
 
+class NoIconDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.icon = QIcon() 
+        option.decorationSize = QSize(0, 0)
+
 class SearchableComboBox(QComboBox):
     def __init__(self, items, placeholder=""):
         super().__init__()

@@ -31,7 +31,7 @@ class GenderKind(Enum):
 @dataclass
 class StudentEntry:
     class FieldKind(Enum):
-        ID = FieldInfo(internal_name = 'id', display_name = 'Id Number', underlying_type = int, )
+        ID = FieldInfo(internal_name = 'id', display_name = 'ID Number', underlying_type = int)
         FIRST_NAME = FieldInfo(internal_name = 'first_name', display_name = 'First Name', underlying_type = str)
         LAST_NAME = FieldInfo(internal_name = 'last_name', display_name = 'Last Name', underlying_type = str)
         PROGRAM_CODE = FieldInfo(internal_name = 'program_code', display_name = 'Program Code', underlying_type = str)

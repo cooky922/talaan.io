@@ -25,7 +25,14 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QColor, QCursor, QAction
 
-from src.model.database import StudentDirectory, ProgramDirectory, CollegeDirectory, ConstraintAction, Paged, Sorted
+from src.model.database import (
+    StudentDirectory, 
+    ProgramDirectory, 
+    CollegeDirectory, 
+    ConstraintAction, 
+    Paged, 
+    Sorted
+)
 from src.model.entries import EntryKind
 from src.utils.constants import Constants
 from src.utils.styles import Styles
@@ -36,6 +43,7 @@ from src.view.components import (
     InfoLabel, 
     ToggleBox, 
     Card,
+    NoIconDelegate,
     RowHoverDelegate,
     SearchableComboBox,
     TableHeader,
@@ -53,6 +61,7 @@ class DirectoryToggleBox(ToggleBox):
 
 class AccountButton(QPushButton):
     logout_requested = pyqtSignal()
+    about_requested = pyqtSignal()
     settings_requested = pyqtSignal()
 
     def __init__(self, role : UserRole, parent = None):
@@ -85,25 +94,50 @@ class AccountButton(QPushButton):
         self.account_menu.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.account_menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
+        base_css = 'QPushButton { text-align: left; }'
+
         ## Settings button
         self.settings_action = QWidgetAction(self)
-        self.settings_button = QPushButton(' Settings')
+        self.settings_button = QPushButton('  Settings')
         self.settings_button.setIcon(IconLoader.get('settings-dark'))
         self.settings_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.settings_button.setStyleSheet(Styles.action_button(back_color = 'transparent', text_color = Constants.TEXT_PRIMARY_COLOR, font_size = 11))
+        self.settings_button.setStyleSheet(base_css + Styles.action_button(
+            back_color = 'white',
+            text_color = Constants.TEXT_PRIMARY_COLOR,
+            font_size = 11,
+        ))
         self.settings_button.clicked.connect(self.trigger_settings)
 
         self.settings_action.setDefaultWidget(self.settings_button)
         self.account_menu.addAction(self.settings_action)
 
+        ## About button
+        self.about_action = QWidgetAction(self)
+        self.about_button = QPushButton('  About')
+        self.about_button.setIcon(IconLoader.get('info-dark'))
+        self.about_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.about_button.setStyleSheet(base_css + Styles.action_button(
+            back_color = 'white',
+            text_color = Constants.TEXT_PRIMARY_COLOR,
+            font_size = 11,
+        ))
+
+        self.about_button.clicked.connect(self.trigger_about)
+
+        self.about_action.setDefaultWidget(self.about_button)
+        self.account_menu.addAction(self.about_action)
+
         self.account_menu.addSeparator()
 
         ## Logout button
         self.logout_action = QWidgetAction(self)
-        self.logout_button = QPushButton(' Logout')
+        self.logout_button = QPushButton('  Logout')
         self.logout_button.setIcon(IconLoader.get('logout-light'))
         self.logout_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.logout_button.setStyleSheet(Styles.action_button(back_color = Constants.DANGER_COLOR, font_size = 11))
+        self.logout_button.setStyleSheet(base_css + Styles.action_button(
+            back_color = Constants.DANGER_COLOR,
+            font_size = 11,
+        ))
         self.logout_button.clicked.connect(self.trigger_logout)
 
         self.logout_action.setDefaultWidget(self.logout_button)
@@ -135,7 +169,50 @@ class AccountButton(QPushButton):
                 font-size: 11px;
                 font-weight: bold;
             }
+                                        
+            QMenu::separator {
+                height: 2px;
+                border-radius: 10px;
+                background-color: #CCCCCC; /* Light gray line */
+                margin: 8px 4px;           /* Gives it some breathing room from the sides */
+            }
         """)
+
+    def create_menu_button(self, text, icon_name, text_color):
+        btn = QPushButton()
+        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        layout = QHBoxLayout(btn)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(10)
+        
+        lbl_icon = QLabel()
+        lbl_icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        lbl_icon.setStyleSheet("background: transparent;")
+        lbl_icon.setPixmap(IconLoader.get(icon_name).pixmap(QSize(16, 16)))
+        
+        # 3. Text Label
+        lbl_text = QLabel(text)
+        lbl_text.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        lbl_text.setStyleSheet(f"color: {text_color}; font-size: 11px; font-weight: bold; background: transparent;")
+        
+        # 4. Add to layout and add a stretch to push them against the left wall
+        layout.addWidget(lbl_icon)
+        layout.addWidget(lbl_text)
+        layout.addStretch()
+        
+        # 5. Clean styling for the button background
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                border: none;
+                border-radius: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: #CCCCCC;
+            }}
+        """)
+        return btn
 
     def trigger_logout(self):
         self.account_menu.close()
@@ -144,6 +221,10 @@ class AccountButton(QPushButton):
     def trigger_settings(self):
         self.account_menu.close()
         self.settings_requested.emit()
+
+    def trigger_about(self):
+        self.account_menu.close()
+        self.about_requested.emit()
 
     def setRole(self, role : UserRole):
         self.role_label.setText(role.value)
@@ -670,6 +751,39 @@ class ToolBar(QWidget):
         self.search_bar.setClearButtonEnabled(True)
         self.search_bar.addAction(IconLoader.get('search-dark'), QLineEdit.ActionPosition.LeadingPosition)
 
+        self.search_filter = QComboBox()
+        self.search_filter.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.search_filter.setFixedWidth(140)
+        self.search_filter.setIconSize(QSize(16, 16))
+        self.search_filter.setItemDelegate(NoIconDelegate(self.search_filter))
+        self.search_filter.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #CCCCCC;
+                border-radius: 15px;
+                background-color: white;
+                color: #555555;
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+            QComboBox:hover { border: 1px solid #8fae44; }
+            QComboBox::drop-down { 
+                subcontrol-origin: padding; 
+                subcontrol-position: top right; 
+                width: 20px; 
+                border-left: none; 
+            }
+            QComboBox::down-arrow { image: none; } /* Hide default arrow */
+            QComboBox QAbstractItemView {
+                background-color: white; color: #333333; border: 1px solid #CCCCCC;
+                selection-background-color: #f0f4e6; selection-color: #333333; outline: none;
+                border-radius: 15px;
+            }
+            QComboBox QAbstractItemView::item:selected, QComboBox QAbstractItemView::item:hover {
+                background-color: #f0f4e6;
+                color: #333333;
+            }
+        """)
+
         self.add_button = QPushButton(' Add Student')
         self.add_button.setIcon(IconLoader.get('add-light'))
         self.add_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 12))
@@ -686,6 +800,7 @@ class ToolBar(QWidget):
         # Structure
         layout.addSpacing(15)
         layout.addWidget(self.search_bar)
+        layout.addWidget(self.search_filter)
         layout.addStretch()
         layout.addWidget(self.add_button, alignment = Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.edit_button, alignment = Qt.AlignmentFlag.AlignRight)
@@ -871,6 +986,7 @@ class TableCard(Card):
         self.search_timer.setInterval(10)
         self.search_timer.timeout.connect(self.on_search_triggered)
         self.tool_bar.search_bar.textChanged.connect(self.search_timer.start)
+        self.tool_bar.search_filter.currentIndexChanged.connect(self.on_search_triggered)
 
         # Wire Up Pagination & Sorting Signals
         self.tool_bar.add_button.clicked.connect(self.open_add_dialog)
@@ -889,6 +1005,11 @@ class TableCard(Card):
         self.table_view.custom_header.blockSignals(True)
         self.table_view.custom_header.setSortIndicator(0, Qt.SortOrder.AscendingOrder)
         self.table_view.custom_header.blockSignals(False)
+
+        self.tool_bar.search_filter.addItem(IconLoader.get('filter-dark'), 'All Fields', userData = 'ALL')
+        fields_info = self.current_db.get_entry_kind().get_entry_type().get_fields()
+        for col in self.current_db.get_columns():
+            self.tool_bar.search_filter.addItem(IconLoader.get('filter-dark'), fields_info[col].display_name, userData = col)
 
         col_name = self.current_db.get_columns()[0]
         self.sort_state = Sorted.By(col_name, ascending = True)
@@ -978,6 +1099,14 @@ class TableCard(Card):
             case 1: self.current_db = ProgramDirectory
             case 2: self.current_db = CollegeDirectory
 
+        self.tool_bar.search_filter.blockSignals(True)
+        self.tool_bar.search_filter.clear()
+        self.tool_bar.search_filter.addItem(IconLoader.get('filter-dark'), 'All Fields', userData = 'ALL')
+        fields_info = self.current_db.get_entry_kind().get_entry_type().get_fields()
+        for col in self.current_db.get_columns():
+            self.tool_bar.search_filter.addItem(IconLoader.get('filter-dark'), fields_info[col].display_name, userData  = col)
+        self.tool_bar.search_filter.blockSignals(False)
+
         self.tool_bar.add_button.setText(' Add ' + self.current_db.get_entry_kind().value)
 
         self.table_view.table_model.set_database(self.current_db)
@@ -998,7 +1127,11 @@ class TableCard(Card):
         where_clause = None
         if self.search_text:
             search_str = self.search_text.lower()
-            where_clause = lambda row: any(search_str in str(val).lower() for val in row.values)
+            target_col = self.tool_bar.search_filter.currentData()
+            if target_col.upper() == 'ALL' or not target_col:
+                where_clause = lambda row: any(search_str in str(val).lower() for val in row.values)
+            else:
+                where_clause = lambda row: search_str in str(row.get(target_col, '')).lower()
 
         total_matches = self.current_db.get_count(where = where_clause)
         paged_request = Paged.Specific(index = self.current_page + 1, size = self.items_per_page)
