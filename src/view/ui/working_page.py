@@ -171,7 +171,7 @@ class YearStepper(QLineEdit):
             val = max(self.min_val, min(self.max_val, int(text)))
             super().setText(str(val))
 
-class RecordDialog(QDialog):
+class EntryDialog(QDialog):
     def __init__(self, current_db, record=None, parent=None):
         super().__init__(parent)
         self.current_db = current_db
@@ -189,9 +189,9 @@ class RecordDialog(QDialog):
             case EntryKind.COLLEGE:
                 self.setFixedWidth(400)
             
-        self.setObjectName('RecordDialog')
+        self.setObjectName('EntryDialog')
         self.setStyleSheet("""
-            QDialog#RecordDialog { background-color: #ffffff; }
+            QDialog#EntryDialog { background-color: #ffffff; }
             QLabel { color: #333333; }
         """)
         
@@ -809,7 +809,7 @@ class TableCard(Card):
         primary_key = self.current_db._db.primary_key
         key_value = record[primary_key]
 
-        dialog = RecordDialog(self.current_db, record = record, parent = self)
+        dialog = EntryDialog(self.current_db, record = record, parent = self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             if dialog.is_deleted:
                 try:
@@ -834,7 +834,7 @@ class TableCard(Card):
                     self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
 
     def open_add_dialog(self):
-        dialog = RecordDialog(self.current_db, record = None, parent = self)
+        dialog = EntryDialog(self.current_db, record = None, parent = self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_data = dialog.get_data()
             try:

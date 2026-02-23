@@ -8,7 +8,8 @@ class Styles:
     @staticmethod 
     def page(id):
         return f"""
-            #{id} {{ background-color: {Constants.BACKGROUND_COLOR}; }}
+            QWidget#{id} {{ background-color: qlineargradient(spread: pad, x1: 0, y1: 0, x2: 0, y2: 1, 
+                                            stop: 0 {Constants.BACKGROUND_COLOR}, stop: 1 {Constants.DARKER_BACKGROUND_COLOR}); }}
             QLabel {{ color: black; font-family: {FontLoader.get('body')}; }}
         """
 
@@ -96,7 +97,6 @@ class Styles:
                 QPushButton {{
                     background-color: transparent;
                     color: #444444;      /* Inactive text color */
-                    font-weight: bold;
                     font-size: 12px;
                     padding: 8px 20px;
                     border-radius: 16px; /* Inner pill shape for the active state */
@@ -109,6 +109,7 @@ class Styles:
                 }}
                 QPushButton:checked {{
                     background-color: #8fae44; /* Solid green active background */
+                    font-weight: bold;
                     color: white;              /* White text when active */
                     border-radius: 16px;
                     border: 1px solid #8fae44;
