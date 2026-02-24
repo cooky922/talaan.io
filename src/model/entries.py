@@ -38,17 +38,23 @@ class StudentEntry:
         YEAR = FieldInfo(internal_name = 'year', display_name = 'Year Level', underlying_type = int)
         GENDER = FieldInfo(internal_name = 'gender', display_name = 'Gender', underlying_type = GenderKind)
 
+        @staticmethod
+        def from_internal_name(name : str) -> StudentEntry.FieldKind:
+            for field_kind in StudentEntry.FieldKind:
+                if field_kind.value.internal_name == name:
+                    return field_kind
+            return None
+
     @staticmethod
     def get_fields() -> dict[StudentEntry.FieldKind, FieldInfo]:
         return {kind.value.internal_name : kind.value for kind in StudentEntry.FieldKind}
     
     @staticmethod
-    def validate(field : FieldKind, input : str, program_directory = None):
+    def validate_field(field : FieldKind, input : str, program_directory = None):
         if field != StudentEntry.FieldKind.YEAR and len(input) == 0:
             raise ValidationError(EntryKind.STUDENT, field,
                                   ValidationErrorKind.MISSING_FIELD,
                                   field.value.display_name + ' Input is empty')
-
         match field: 
             case StudentEntry.FieldKind.ID:
                 parts = input.split('-')
@@ -116,7 +122,7 @@ class StudentEntry:
                                           'The given input is missing some fields')
                 else:
                     continue
-            StudentEntry.validate(field_kind, entry[field_kind.value.internal_name], program_directory)
+            StudentEntry.validate_field(field_kind, entry[field_kind.value.internal_name], program_directory)
 
 class ProgramEntry:
     class FieldKind(Enum):
@@ -124,12 +130,19 @@ class ProgramEntry:
         PROGRAM_NAME = FieldInfo(internal_name = 'program_name', display_name = 'Program Name', underlying_type = str)
         COLLEGE_CODE = FieldInfo(internal_name = 'college_code', display_name = 'College Code', underlying_type = str)
 
+        @staticmethod
+        def from_internal_name(name : str) -> ProgramEntry.FieldKind:
+            for field_kind in ProgramEntry.FieldKind:
+                if field_kind.value.internal_name == name:
+                    return field_kind
+            return None
+
     @staticmethod
     def get_fields() -> dict[ProgramEntry.FieldKind, FieldInfo]:
         return {kind.value.internal_name : kind.value for kind in ProgramEntry.FieldKind}
     
     @staticmethod
-    def validate(field : FieldKind, input : str, college_directory = None):
+    def validate_field(field : FieldKind, input : str, college_directory = None):
         if len(input) == 0:
             raise ValidationError(EntryKind.PROGRAM, field,
                                   ValidationErrorKind.MISSING_FIELD,
@@ -158,19 +171,26 @@ class ProgramEntry:
                                           'The given input is missing some fields')
                 else:
                     continue
-            ProgramEntry.validate(field_kind, entry[field_kind.value.internal_name], college_directory)
+            ProgramEntry.validate_field(field_kind, entry[field_kind.value.internal_name], college_directory)
 
 class CollegeEntry:
     class FieldKind(Enum):
         COLLEGE_CODE = FieldInfo(internal_name = 'college_code', display_name = 'College Code', underlying_type = str)
         COLLEGE_NAME = FieldInfo(internal_name = 'college_name', display_name = 'College Name', underlying_type = str)
 
+        @staticmethod
+        def from_internal_name(name : str) -> CollegeEntry.FieldKind:
+            for field_kind in CollegeEntry.FieldKind:
+                if field_kind.value.internal_name == name:
+                    return field_kind
+            return None
+
     @staticmethod
     def get_fields() -> dict[CollegeEntry.FieldKind, FieldInfo]:
         return {kind.value.internal_name : kind.value for kind in CollegeEntry.FieldKind}
     
     @staticmethod
-    def validate(field : FieldKind, input : str):
+    def validate_field(field : FieldKind, input : str):
         if len(input) == 0:
             raise ValidationError(EntryKind.COLLEGE, field,
                                   ValidationErrorKind.MISSING_FIELD,
@@ -202,4 +222,4 @@ class CollegeEntry:
                                           'The given input is missing some fields')
                 else:
                     continue
-            CollegeEntry.validate(field_kind, entry[field_kind.value.internal_name])
+            CollegeEntry.validate_field(field_kind, entry[field_kind.value.internal_name])

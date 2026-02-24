@@ -319,12 +319,14 @@ class Styles:
                 font-size: 11px;
                 padding: 8px 10px;
             }
-            QComboBox:hover { border: 1px solid #8fae44; }
-            QComboBox::drop-down { 
+            QComboBox:hover {
+                background-color: #EEEEEE;
+            }
+            QComboBox::drop-down {
                 subcontrol-origin: padding; 
                 subcontrol-position: top right; 
                 width: 20px; 
-                border-left: none; 
+                border-left: none;
             }
             QComboBox::down-arrow { image: none; } /* Hide default arrow */
             QComboBox QAbstractItemView {

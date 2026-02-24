@@ -157,6 +157,12 @@ class GenericDatabase:
             return filtered_df.iloc[0].to_dict()
         else:
             raise ArgumentError('Index must be an integer or string')
+        
+    def validate_add_record(self, record : dict):
+        pk_val = record.get(self.primary_key)
+        if pk_val and str(pk_val) in self.df[self.primary_key].astype(str).values:
+            raise DatabaseError(DatabaseErrorKind.DUPLICATE_KEY,
+                                f'The key \'{pk_val}\' already exists')
 
     def add_record(self, record: dict):
         if self.df.empty:
@@ -165,10 +171,7 @@ class GenericDatabase:
             self.modified = True
             return
         if self.primary_key:
-            pk_val = record.get(self.primary_key)
-            if pk_val and str(pk_val) in self.df[self.primary_key].astype(str).values:
-                raise DatabaseError(DatabaseErrorKind.DUPLICATE_KEY,
-                                    f'The key \'{pk_val}\' already exists')
+            self.validate_add_record(record)
         self.df = pd.concat([self.df, pd.DataFrame([record])], ignore_index=True)
         self.modified = True
     
@@ -186,7 +189,7 @@ class GenericDatabase:
                 self.df.loc[mask, key] = value
         self.modified = True
 
-    def update_record(self, updates: dict, *, index : int = None, key : str = None):
+    def validate_update_record(self, updates: dict, *, index : int = None, key : str = None):
         if index is not None and key is not None:
             raise ArgumentError('Provide either \'index\' or \'key\', not both')
         if index is not None:
@@ -206,6 +209,10 @@ class GenericDatabase:
             if new_pk != current_pk:
                 if new_pk in self.df[self.primary_key].astype(str).values:
                     raise DatabaseError(DatabaseErrorKind.DUPLICATE_KEY)
+        return index
+
+    def update_record(self, updates: dict, *, index : int = None, key : str = None):
+        index = self.validate_update_record(updates, index = index, key = key)
         idx = index if index is not None else key
         for updated_key, updated_value in updates.items():
             if updated_key in self.df.columns:
@@ -255,6 +262,10 @@ class StudentDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.STUDENT
+    
+    @staticmethod
+    def get_parent_entry_kind():
+        return EntryKind.PROGRAM
     
     @classmethod
     def get_primary_key(self):
@@ -323,6 +334,10 @@ class ProgramDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.PROGRAM
+    
+    @staticmethod
+    def get_parent_entry_kind():
+        return EntryKind.COLLEGE
     
     @classmethod
     def get_primary_key(self):
@@ -428,6 +443,10 @@ class CollegeDirectory:
     @staticmethod
     def get_entry_kind():
         return EntryKind.COLLEGE
+    
+    @staticmethod
+    def get_parent_entry_kind():
+        return None
     
     @classmethod
     def get_primary_key(self):

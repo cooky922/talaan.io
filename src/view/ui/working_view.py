@@ -658,6 +658,9 @@ class MainBody(Card):
     def show_custom_message(self, title, message, is_error = False):
         msg = MessageBox(self, title, message)
         msg.setIcon(QMessageBox.Icon.Critical if is_error else QMessageBox.Icon.Information)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.setDefaultButton(QMessageBox.StandardButton.Ok)
+
         msg.exec()
 
 class WorkingView(QWidget):

@@ -1,3 +1,4 @@
+from enum import Enum
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -12,7 +13,14 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
 
-from src.model.entries import EntryKind
+from src.utils.font_loader import FontLoader
+from src.model.errors import DatabaseError, DatabaseErrorKind, ValidationError, ValidationErrorKind
+from src.model.entries import (
+    EntryKind,
+    StudentEntry,
+    ProgramEntry,
+    CollegeEntry
+)
 from src.model.database import (
     StudentDirectory, 
     ProgramDirectory, 
@@ -28,6 +36,11 @@ from src.view.components import (
     MessageBox
 )
 
+class EntryDialogKind(Enum):
+    INFO = 0
+    ADD = 1
+    EDIT = 2
+
 class EntryDialog(QDialog):
     def __init__(self, current_db, record=None, parent=None):
         super().__init__(parent)
@@ -36,6 +49,8 @@ class EntryDialog(QDialog):
         self.is_edit_mode = record is not None
         self.is_deleted = False
         
+        title_text = f'{'Edit' if self.is_edit_mode else 'Add'} {self.current_db.get_entry_kind().value}'
+        self.setWindowTitle(title_text)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
 
         match self.current_db.get_entry_kind():
@@ -52,13 +67,13 @@ class EntryDialog(QDialog):
             QLabel { color: #333333; }
         """)
         
-        title_text = 'Edit Record' if self.is_edit_mode else 'Add Record'
-        title_text = title_text.replace('Record', self.current_db.get_entry_kind().value)
-        self.setWindowTitle(title_text)
-        
         self.inputs = {}
+        self.error_labels = {}
+
         self.setup_ui()
         self.populate_data()
+
+        self.action_button.setEnabled(False)
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -76,19 +91,23 @@ class EntryDialog(QDialog):
         
         for col_name in columns:
             field_layout = QVBoxLayout()
-            field_layout.setSpacing(5)
+            field_layout.setSpacing(2) # 5
             
             label_text = self.current_db.get_entry_kind().get_entry_type().get_fields()[col_name].display_name
             
             lbl = QLabel(label_text.upper())
-            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #555555;")
+            lbl.setStyleSheet('font-size: 11px; font-weight: bold; color: #555555;')
             field_layout.addWidget(lbl)
-            
-            # Pass the label_text to create placeholders!
+
             input_widget = self.create_input_widget(col_name, label_text)
-            
-            # Only lock the id if we are editing a student entry
-            if self.is_edit_mode and col_name == primary_key and self.current_db.get_entry_kind() == EntryKind.STUDENT:
+
+            if isinstance(input_widget, QComboBox):
+                input_widget.currentTextChanged.connect(self.validate_form)
+            elif isinstance(input_widget, QLineEdit):
+                input_widget.textChanged.connect(self.validate_form)
+
+            if (self.is_edit_mode and col_name == primary_key and 
+                self.current_db.get_entry_kind() == EntryKind.STUDENT):
                 if isinstance(input_widget, QComboBox):
                     input_widget.setEnabled(False)
                 else:
@@ -113,6 +132,12 @@ class EntryDialog(QDialog):
 
             field_layout.addWidget(input_widget)
             self.inputs[col_name] = input_widget
+
+            error_label = QLabel('')
+            error_label.setStyleSheet(f'color: #ff4c4c; font-size: 10px; font-weight: bold; font-family: {FontLoader.get('default')}; padding-left: 2px;')
+            error_label.setFixedHeight(12)
+            self.error_labels[col_name] = error_label
+            field_layout.addWidget(error_label)
             
             if col_name in ['first_name', 'last_name', 'year', 'gender']:
                 self.grid_layout.addLayout(field_layout, row_idx, col_idx)
@@ -122,8 +147,8 @@ class EntryDialog(QDialog):
                     row_idx += 1
             else:
                 if col_idx == 1: 
-                    row_idx += 1
                     col_idx = 0
+                    row_idx += 1
                 self.grid_layout.addLayout(field_layout, row_idx, 0, 1, 2)
                 row_idx += 1
 
@@ -177,9 +202,17 @@ class EntryDialog(QDialog):
             :focus { border: 1.5px solid #8fae44; background-color: #fcfff5; }
         """
 
+        error_state = """
+            [error="true"] { 
+                border: 1px solid #ff4c4c !important; 
+                background-color: #fff0f0 !important; 
+            }
+        """
+
         # Notice how we completely killed the down-arrow image here!
         combo_style = f"""
             QComboBox {{ {base_style} padding: 6px 10px; }}
+            QComboBox{error_state}
             QComboBox{interactive_states}
             QComboBox::drop-down {{
                 subcontrol-origin: padding; subcontrol-position: top right; width: 30px; border-left: none;
@@ -206,31 +239,33 @@ class EntryDialog(QDialog):
         placeholder = f'Enter {label_text.lower()}'
         select_placeholder = f'Select {label_text.lower()}'
 
-        if col_name == 'gender': 
-            cb = SearchableComboBox(['Male', 'Female', 'Other'], select_placeholder)
-            cb.setStyleSheet(combo_style)
-            return cb
+        match col_name:
+            case 'gender':
+                cb = SearchableComboBox(['Male', 'Female', 'Other'], select_placeholder)
+                cb.setStyleSheet(combo_style)
+                return cb
+            case 'year':
+                return YearStepper(min_val = 1, max_val = 4)
+            case 'program_code' if self.current_db.get_entry_kind() == EntryKind.STUDENT:
+                cb = SearchableComboBox(sorted(ProgramDirectory.get_keys()), select_placeholder)
+                cb.setStyleSheet(combo_style)
+                return cb
+            case 'college_code' if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
+                cb = SearchableComboBox(sorted(CollegeDirectory.get_keys()), select_placeholder)
+                cb.setStyleSheet(combo_style)
+                return cb
+            case _:
+                le = QLineEdit()
+                le.setPlaceholderText(placeholder)
+                le_style = f"""
+                    QLineEdit {{ {base_style} padding: 6px 10px; }} 
+                    QLineEdit{error_state}
+                    QLineEdit{interactive_states} 
+                    QLineEdit::placeholder {{ color: #bbbbbb; }}
+                """
+                le.setStyleSheet(le_style)
+                return le
             
-        elif col_name == 'year': 
-            return YearStepper(min_val = 1, max_val = 4)
-            
-        elif col_name == 'program_code' and self.current_db.get_entry_kind() == EntryKind.STUDENT:
-            cb = SearchableComboBox(sorted(ProgramDirectory.get_keys()), select_placeholder)
-            cb.setStyleSheet(combo_style)
-            return cb
-            
-        elif col_name == 'college_code' and self.current_db.get_entry_kind() == EntryKind.PROGRAM:
-            cb = SearchableComboBox(sorted(CollegeDirectory.get_keys()), select_placeholder)
-            cb.setStyleSheet(combo_style)
-            return cb
-            
-        else:
-            le = QLineEdit()
-            le.setPlaceholderText(placeholder)
-            le_style = f"QLineEdit {{ {base_style} padding: 6px 10px; }} QLineEdit{interactive_states} QLineEdit::placeholder {{ color: #bbbbbb; }}"
-            le.setStyleSheet(le_style)
-            return le
-        
     def confirm_rename_changes(self, count, old_key, new_key):
         message = f'Are you sure you want to rename this {old_key} to {new_key}?\n\nThis action cannot be undone.'
         if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
@@ -272,12 +307,12 @@ class EntryDialog(QDialog):
         message = 'Are you sure you want to delete this record?\n\nThis action cannot be undone.'
         input_data = self.get_data()
         if self.current_db.get_entry_kind() == EntryKind.PROGRAM:
-            old_program_code = input_data['program_code']
+            old_program_code = self.record['program_code']
             count = StudentDirectory.get_count(where = f'program_code == \'{old_program_code}\'')
             if count > 0:
                 message += f'\nThis also means deleting {count} student entries with program code {old_program_code}.'
         elif self.current_db.get_entry_kind() == EntryKind.COLLEGE:
-            old_college_code = input_data['college_code']
+            old_college_code = self.record['college_code']
             program_list = ProgramDirectory.get_records(where = f'college_code == \'{old_college_code}\'')
             program_count = len(program_list)
             if program_count > 0:
@@ -323,3 +358,69 @@ class EntryDialog(QDialog):
             else:
                 data[col_name] = val
         return data
+    
+    def validate_form(self):
+        is_valid = True
+        data = self.get_data()
+    
+        primary_key = self.current_db.get_primary_key()
+
+        for col_name, widget in self.inputs.items():
+            widget.setProperty('error', False)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            if col_name in self.error_labels:
+                self.error_labels[col_name].setText('')
+
+        def set_error(col, msg):
+            nonlocal is_valid
+            is_valid = False
+            widget = self.inputs[col]
+            widget.setProperty('error', True)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            
+            self.error_labels[col].setText(msg)
+
+        for col_name, val in data.items():
+            # check if empty
+            if not str(val).strip():
+                set_error(col_name, 'This field cannot be empty.')
+                continue
+            # validate
+            try:
+                entry_kind = self.current_db.get_entry_kind()
+                EntryType = entry_kind.get_entry_type()
+                ParentDirectoryType = None
+                match entry_kind:
+                    case EntryKind.STUDENT:
+                        ParentDirectoryType = ProgramDirectory
+                    case EntryKind.PROGRAM:
+                        ParentDirectoryType = CollegeDirectory
+                if entry_kind != EntryKind.COLLEGE:
+                    EntryType.validate_field(EntryType.FieldKind.from_internal_name(col_name), val, ParentDirectoryType)
+                else:
+                    EntryType.validate_field(EntryType.FieldKind.from_internal_name(col_name), val)
+            except ValidationError as e:
+                set_error(col_name, e.message)
+                continue
+            # check add record, update record (only for primary key)
+            if primary_key is not None and col_name == primary_key:
+                try:
+                    # add 
+                    if not self.is_edit_mode:
+                        self.current_db._db.validate_add_record(data)
+                    # edit
+                    else:
+                        self.current_db._db.validate_update_record(data, key = data[primary_key])
+                except DatabaseError as e:
+                    set_error(col_name, e.message)
+
+        self.action_button.setEnabled(is_valid)
+        if is_valid:
+            self.action_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 11))
+            self.action_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        else:
+            # Grayed out, disabled look
+            self.action_button.setStyleSheet(Styles.action_button(back_color = '#f0f0f0', text_color='#aaaaaa', font_size = 11, bordered=True))
+            self.action_button.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
