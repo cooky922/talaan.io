@@ -1,26 +1,24 @@
 ## **talaan.io** - Simple Student Information System 
 
-**talaan.io** is a desktop-based Simple Student Information System (SSIS) designed to streamline academic record management. Built using Python and PyQt6, this project serves as a technical experiment in using flat-file CSV systems as a primary database for CRUD operations.
+![Logo banner](./assets/documentation/logo_banner.png)
+
+**talaan.io** is a desktop-based Simple Student Information System (SSIS) designed to streamline academic record management. Built using Python and PyQt6, this project serves as a technical experiment in using flat-file CSV systems as a primary database for full CRUD functionality.
 
 This project is developed in fulfillment of the requirements for the subject **CCC151 - Information Management**.
 
-## 📋 Overview
-
-talaan.io provides an intuitive desktop interface for managing interconnected academic directory records — **Students**, **Programs**, and **Colleges**. All data is persisted locally in plain CSV files, making the system lightweight and portable without the need for a traditional relational database engine. The application demonstrates core database concepts such as primary keys, foreign key relationships, and schema validation, all implemented at the application level.
-
----
+![App screenshot](./assets/documentation/app_screenshot.png)
 
 ## ✨ Features
+### Core Functionality
+**talaan.io** provides **comprehensive student management**, allowing you to add, view, edit, and delete records with full entry details. This organization extends to **program and college directories**, making it easy to intuitively link academic programs to their parent colleges. The system enforces **smart relational integrity** as it actively prevents assigning students to non-existent programs and issues strict cascade warnings if you attempt to delete a college or program that contains active records. 
 
-- 📁 **Flat-file CSV database** — No external database server required. All records are stored and managed in local `.csv` files
-- 🎓 **Student management** — Add, view, edit, and delete student records with full enrollment details
-- 📚 **Program management** — Manage academic programs linked to their parent colleges
-- 🏛️ **College management** — Maintain a directory of colleges that programs belong to
-- 🔗 **Relational integrity** — Foreign key-like relationships enforced between students, programs, and colleges
-- 🔍 **Search & filter** — Quickly find records across all directories
-- 🖥️ **Desktop GUI** — Clean, responsive interface built with PyQt6
+Navigating this data is seamless because of **real-time search and pagination** that instantly filters through thousands of entries for a clean viewing experience.
 
----
+### 🧠 Architecture & Data Management
+The application relies on a **zero-config CSV database**, eliminating the need for external database servers while keeping your data portable and easy to back up. Under the hood, a **pandas-powered engine** handles lightning-fast, in-memory data manipulation and querying. In order to ensure optimized memory management and reduce disk I/O, database changes are held in RAM to be **batch-saved to the disk** upon application exit.
+
+### 🎨 User Interface & Experience
+The user experience is centered around a **modern PyQt6 GUI**, featuring a fully responsive, custom-styled interface with hover delegates and clean typography. All data entry is heavily protected by **real-time inline validation** within entry dialogs. As you type, the system actively checks for missing fields or duplicate IDs, instantly triggering red-border highlights and locking the "Save" button until all constraints are resolved. The interface also utilizes heavily custom interactive widgets, such as searchable combo boxes for rapid foreign key selection and constrained numeric steppers for year inputs.
 
 ## 🧰 Tech Stack
 
@@ -28,7 +26,7 @@ talaan.io provides an intuitive desktop interface for managing interconnected ac
 |---|---|
 | [Python 3](https://www.python.org/) | Core application language |
 | [PyQt6](https://pypi.org/project/PyQt6/) | Desktop GUI framework |
-| [Pandas](https://pandas.pydata.org/) | Data analysis and manipulation |
+| [Pandas](https://pypi.org/project/pandas/) | Data analysis, querying, and manipulation |
 | CSV (flat files) | Lightweight data persistence layer |
 
 ## 🚀 Getting Started
@@ -39,26 +37,70 @@ talaan.io provides an intuitive desktop interface for managing interconnected ac
 |---|---|
 | [Python 3.10+](https://www.python.org/downloads/) | Required to run the application |
 | [PyQt6](https://pypi.org/project/PyQt6/) | Install via pip |
-| [Pandas](https://pandas.pydata.org/) | Install via pip |
+| [Pandas](https://pypi.org/project/pandas/) | Install via pip |
 
 ### ⚙️ Installation
 
-```bash
-# 1. Clone the repository
+You have two options to run the project.
+
+#### **Option 1: Binary Distribution**
+This project offers a pre-compiled binary distribution (only for windows for now). This allows you to run the custom-branded `.exe` file without needing to install Python or set up a virtual environment. Simply download the latest release, extract the ZIP folder, and double-click the executable.
+
+#### **Option 2: Setup from Source**
+**1. Clone the Repository**
+```sh
 git clone https://github.com/cooky922/talaan.io.git
 cd talaan.io
-
-# 2. (Optional) Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate        # On Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install PyQt6
+```
+**2. Create and Activate a Virtual Environment**
+```sh
+python -m venv talaan_env
 ```
 
-### ▶️ Running the App
-```bash
+**3. Activate the Virtual Environment**
+
+- **Windows Command Prompt:**
+```sh
+talaan_env\Scripts\activate
+```
+
+- **Windows Powershell:**
+```sh
+.\talaan_env\Scripts\Activate
+```
+
+- **Linux/macOS:**
+```sh
+source talaan_env/bin/activate
+```
+
+**4. Install Dependencies**
+```sh
+pip install -e .
+```
+___
+
+**5. Running the Project**
+Ensure the virtual environment is activated and all dependencies were installed properly
+```sh
 python main.py
 ```
 
-The application window will open. The `data/` directory and CSV files will be created automatically on first launch if they do not already exist.
+#### **Deactivating the Virtual Environment**
+
+You can deactivate the virtual environment once you are done working
+```sh
+deactivate
+```
+
+#### **Troubleshooting**
+
+If `pip install -e .` fails, try manually installing dependencies using:
+```sh
+pip install -r requirements.txt
+```
+
+If `pip install -r requirements.txt` fails, try updating `pip`:
+```sh
+pip install --upgrade pip
+````
