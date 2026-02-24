@@ -391,3 +391,10 @@ class Styles:
                 background: none;
             }
         """
+    
+    @staticmethod
+    def entry_dialog():
+        return """
+            QDialog#EntryDialog { background-color: #ffffff; }
+            QLabel { color: #333333; }
+        """

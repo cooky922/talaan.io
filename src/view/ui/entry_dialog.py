@@ -31,25 +31,31 @@ from src.utils.styles import Styles
 from src.utils.icon_loader import IconLoader
 
 from src.view.components import (
+    InfoLabel,
     YearStepper,
     SearchableComboBox,
     MessageBox
 )
 
 class EntryDialogKind(Enum):
-    INFO = 0
-    ADD = 1
-    EDIT = 2
+    INFO = 'View'
+    ADD = 'Add'
+    EDIT = 'Edit'
 
 class EntryDialog(QDialog):
-    def __init__(self, current_db, record=None, parent=None):
+    def __init__(self, current_db, mode, record = None, parent = None):
         super().__init__(parent)
         self.current_db = current_db
         self.record = record
-        self.is_edit_mode = record is not None
+        self.mode = mode
         self.is_deleted = False
-        
-        title_text = f'{'Edit' if self.is_edit_mode else 'Add'} {self.current_db.get_entry_kind().value}'
+
+        title_text = ''
+        if self.mode == EntryDialogKind.INFO:
+            title_text = f'{self.current_db.get_entry_kind().value} Information'
+        else:
+            title_text = f'{self.mode.value} {self.current_db.get_entry_kind().value}'
+
         self.setWindowTitle(title_text)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
 
@@ -62,20 +68,19 @@ class EntryDialog(QDialog):
                 self.setFixedWidth(400)
             
         self.setObjectName('EntryDialog')
-        self.setStyleSheet("""
-            QDialog#EntryDialog { background-color: #ffffff; }
-            QLabel { color: #333333; }
-        """)
-        
-        self.inputs = {}
-        self.error_labels = {}
+        self.setStyleSheet(Styles.entry_dialog())
 
-        self.setup_ui()
-        self.populate_data()
+        if self.mode != EntryDialogKind.INFO:
+            self.inputs = {}
+            self.error_labels = {}
 
-        self.action_button.setEnabled(False)
-        self.action_button.setStyleSheet(Styles.action_button(back_color = '#f0f0f0', text_color='#aaaaaa', font_size = 11, bordered=True))
-        self.action_button.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
+            self.setup_ui()
+            self.populate_data()
+            self.action_button.setEnabled(False)
+            self.action_button.setStyleSheet(Styles.action_button(back_color = '#f0f0f0', text_color='#aaaaaa', font_size = 11, bordered=True))
+            self.action_button.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
+        else:
+            self.setup_info_ui()
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -87,7 +92,7 @@ class EntryDialog(QDialog):
         
         columns = self.current_db.get_columns()
         primary_key = self.current_db._db.primary_key
-        
+
         row_idx = 0
         col_idx = 0
         
@@ -96,7 +101,7 @@ class EntryDialog(QDialog):
             field_layout.setSpacing(2) # 5
             
             label_text = self.current_db.get_entry_kind().get_entry_type().get_fields()[col_name].display_name
-            
+
             lbl = QLabel(label_text.upper())
             lbl.setStyleSheet('font-size: 11px; font-weight: bold; color: #555555;')
             field_layout.addWidget(lbl)
@@ -108,14 +113,12 @@ class EntryDialog(QDialog):
             elif isinstance(input_widget, QLineEdit):
                 input_widget.textChanged.connect(self.validate_form)
 
-            if (self.is_edit_mode and col_name == primary_key and 
-                self.current_db.get_entry_kind() == EntryKind.STUDENT):
+            if self.mode == EntryDialogKind.EDIT and col_name == primary_key and self.current_db.get_entry_kind() == EntryKind.STUDENT:
                 if isinstance(input_widget, QComboBox):
                     input_widget.setEnabled(False)
                 else:
                     input_widget.setReadOnly(True)
                 
-                # Apply the dashed border, gray background, and Forbidden Cursor
                 disabled_css = """
                     background-color: #f7f7f7 !important;
                     color: #aaaaaa !important;
@@ -131,8 +134,6 @@ class EntryDialog(QDialog):
 
                 input_widget.setStyleSheet(input_widget.styleSheet() + override_css)
                 input_widget.setCursor(Qt.CursorShape.ForbiddenCursor)
-
-            input_widget.setProperty('default_style', input_widget.styleSheet())
 
             field_layout.addWidget(input_widget)
             self.inputs[col_name] = input_widget
@@ -164,7 +165,7 @@ class EntryDialog(QDialog):
 
         self.delete_button = None
 
-        if self.is_edit_mode:
+        if self.mode == EntryDialogKind.EDIT:
             self.delete_button = QPushButton('Delete')
             self.delete_button.setIcon(IconLoader.get('delete-light'))
             self.delete_button.setStyleSheet(Styles.action_button(back_color = Constants.DANGER_COLOR, font_size = 11))
@@ -179,7 +180,7 @@ class EntryDialog(QDialog):
         self.cancel_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.cancel_button.clicked.connect(self.reject)
 
-        self.action_button = QPushButton('Save' if self.is_edit_mode else 'Add')
+        self.action_button = QPushButton('Save' if self.mode == EntryDialogKind.EDIT else 'Add')
         self.action_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 11))
         self.action_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.action_button.clicked.connect(self.request_proceed)
@@ -191,6 +192,119 @@ class EntryDialog(QDialog):
 
         self.adjustSize()
         self.setFixedHeight(self.height())
+
+    def setup_info_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(0)
+
+        first_grid_layout = QGridLayout()
+        first_grid_layout.setSpacing(15)
+        
+        columns = self.current_db.get_columns()
+
+        row_idx = 0
+        col_idx = 0
+        
+        for col_name in columns:
+            title_text = self.current_db.get_entry_kind().get_entry_type().get_fields()[col_name].display_name
+            val = self.record[col_name]
+            label_text = str(val) if isinstance(val, int) else val
+            field_layout = self.create_field_info_widget(title_text, label_text)
+        
+            if col_name in ['first_name', 'last_name', 'year', 'gender']:
+                first_grid_layout.addLayout(field_layout, row_idx, col_idx)
+                col_idx += 1
+                if col_idx > 1:
+                    col_idx = 0
+                    row_idx += 1
+            else:
+                if col_idx == 1: 
+                    col_idx = 0
+                    row_idx += 1
+                first_grid_layout.addLayout(field_layout, row_idx, 0, 1, 2)
+                row_idx += 1
+
+        # Additional Information about the Entry
+        second_grid_layout = QGridLayout()
+        second_grid_layout.setSpacing(15)
+
+        match self.current_db.get_entry_kind():
+            case EntryKind.STUDENT:
+                # Program Name
+                program_record = ProgramDirectory.get_record(key = self.record['program_code'])
+                program_name_field = self.create_field_info_widget('Program Name', program_record['program_name'])
+
+                # College
+                college_code = program_record['college_code']
+                college_record = CollegeDirectory.get_record(key = program_record['college_code'])
+                college_name = college_record['college_name']
+                college_field = self.create_field_info_widget('College', f'{college_code} - {college_name}')
+
+                second_grid_layout.addLayout(program_name_field, 0, 0, 1, 2)
+                second_grid_layout.addLayout(college_field, 1, 0, 1, 2)
+
+            case EntryKind.PROGRAM:
+                # Number of Students
+                count = StudentDirectory.get_count(where = f'program_code == \'{self.record['program_code']}\'')
+                student_count_field = self.create_field_info_widget('Number of Students', f'{count}')
+
+                # College
+                college_code = self.record['college_code']
+                college_record = CollegeDirectory.get_record(key = self.record['college_code'])
+                college_name = college_record['college_name']
+                college_field = self.create_field_info_widget('College', f'{college_code} - {college_name}')
+
+                second_grid_layout.addLayout(student_count_field, 0, 0, 1, 2)
+                second_grid_layout.addLayout(college_field, 1, 0, 1, 2)
+
+            case EntryKind.COLLEGE:
+                # Number of Programs
+                program_records = ProgramDirectory.get_records(where = f'college_code == \'{self.record['college_code']}\'')
+                program_count_field = self.create_field_info_widget('Number of Programs', f'{len(program_records)}')
+
+                # Number of Students
+                student_count = sum(StudentDirectory.get_count(where = f'program_code == \'{program_record['program_code']}\'') for program_record in program_records)
+                student_count_field = self.create_field_info_widget('Number of Students', f'{student_count}')
+
+                second_grid_layout.addLayout(program_count_field, 0, 0, 1, 1)
+                second_grid_layout.addLayout(student_count_field, 0, 1, 1, 1)
+
+        main_layout.addWidget(InfoLabel('Basic Information', fontSize = 14, bold = True))
+        main_layout.addLayout(first_grid_layout)
+        main_layout.addSpacing(10)
+        main_layout.addWidget(InfoLabel('More Information', fontSize = 14, bold = True))
+        main_layout.addLayout(second_grid_layout)
+
+        self.adjustSize()
+        self.setFixedHeight(self.height())
+
+    def create_field_info_widget(self, title_text, label_text):
+        base_style = f"""
+            border: 1px solid #CCCCCC;
+            border-radius: 10px;
+            background-color: white;
+            color: #333333;
+            font-size: 11px;
+            font-family: {FontLoader.get('default')};
+        """
+
+        field_layout = QVBoxLayout()
+        field_layout.setSpacing(2)
+
+        title = QLabel(title_text)
+        title.setStyleSheet('font-size: 11px; font-weight: bold; color: #555555;')
+        field_layout.addWidget(title)
+
+        label = QLabel(label_text)
+        label.setWordWrap(True)
+        label.setStyleSheet(f""" 
+            QLabel {{ {base_style} padding: 6px 10px; }}
+        """)
+
+        field_layout.addWidget(label)
+
+        return field_layout
 
     def create_input_widget(self, col_name, label_text):
         base_style = """
@@ -284,7 +398,7 @@ class EntryDialog(QDialog):
         return msg.exec()
         
     def request_proceed(self):
-        if not self.is_edit_mode:
+        if self.mode != EntryDialogKind.EDIT:
             self.accept()
             return
         new_data = self.get_data()
@@ -337,7 +451,9 @@ class EntryDialog(QDialog):
             self.accept()
 
     def populate_data(self):
-        if not self.is_edit_mode: return
+        if self.mode != EntryDialogKind.EDIT:
+            return
+
         for col_name, widget in self.inputs.items():
             val = str(self.record.get(col_name, ''))
             if isinstance(widget, QComboBox): 
@@ -424,7 +540,7 @@ class EntryDialog(QDialog):
             if primary_key is not None and col_name == primary_key:
                 try:
                     # add 
-                    if self.is_edit_mode and data[primary_key] == self.record[primary_key]:
+                    if self.mode == EntryDialogKind.EDIT and data[primary_key] == self.record[primary_key]:
                         continue
                     self.current_db._db.validate_add_record(data)
                 except DatabaseError as e:

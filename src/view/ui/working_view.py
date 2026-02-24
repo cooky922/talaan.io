@@ -49,7 +49,7 @@ from src.view.components import (
     ToastNotification,
     MessageBox
 )
-from src.view.ui.entry_dialog import EntryDialog
+from src.view.ui.entry_dialog import EntryDialog, EntryDialogKind
 
 class DirectoryToggleArea(ToggleBox):
     def __init__(self):
@@ -60,8 +60,8 @@ class DirectoryToggleArea(ToggleBox):
 
 class AccountArea(QPushButton):
     logout_requested = pyqtSignal()
-    about_requested = pyqtSignal()
-    settings_requested = pyqtSignal()
+    # about_requested = pyqtSignal()
+    # settings_requested = pyqtSignal()
 
     def __init__(self, role : UserRole, parent = None):
         super().__init__('', parent)
@@ -95,6 +95,7 @@ class AccountArea(QPushButton):
 
         base_css = 'QPushButton { text-align: left; }'
 
+        """
         ## Settings button
         self.settings_action = QWidgetAction(self)
         self.settings_button = QPushButton('  Settings')
@@ -125,6 +126,7 @@ class AccountArea(QPushButton):
 
         self.about_action.setDefaultWidget(self.about_button)
         self.account_menu.addAction(self.about_action)
+        """
 
         self.account_menu.addSeparator()
 
@@ -531,39 +533,40 @@ class MainBody(Card):
 
     # triggered when a user clicks a row in the table
     def on_row_clicked(self, index):
-        # if the toolbar is not in edit mode, do nothing
-        if not self.tool_bar.is_edit_mode:
-            return
         record = self.table_view.model._data[index.row()]
-        primary_key = self.current_db._db.primary_key
-        key_value = record[primary_key]
 
-        dialog = EntryDialog(self.current_db, record = record, parent = self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            if dialog.is_deleted:
-                try:
-                    if self.current_db.get_entry_kind() == EntryKind.STUDENT:
-                        self.current_db.delete_record(key = key_value)
-                    else:
-                        self.current_db.delete_record(key = key_value, action = ConstraintAction.Cascade)
-                    self.fetch_data()
-                    self.toast.show_message('row deleted')
-                except Exception as e:
-                    self.show_custom_message('Error', f'Failed to delete record\n{str(e)}', is_error = True)
-            else:
-                new_data = dialog.get_data()
-                try:
-                    if self.current_db.get_entry_kind() ==  EntryKind.STUDENT:
-                        self.current_db.update_record(new_data, key = key_value)
-                    else:
-                        self.current_db.update_record(new_data, key = key_value, action = ConstraintAction.Cascade)
-                    self.fetch_data()
-                    self.toast.show_message('row updated')
-                except Exception as e:
-                    self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
+        if self.tool_bar.is_edit_mode:
+            primary_key = self.current_db._db.primary_key
+            key_value = record[primary_key]
+            dialog = EntryDialog(self.current_db, mode = EntryDialogKind.EDIT, record = record, parent = self)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                if dialog.is_deleted:
+                    try:
+                        if self.current_db.get_entry_kind() == EntryKind.STUDENT:
+                            self.current_db.delete_record(key = key_value)
+                        else:
+                            self.current_db.delete_record(key = key_value, action = ConstraintAction.Cascade)
+                        self.fetch_data()
+                        self.toast.show_message('row deleted')
+                    except Exception as e:
+                        self.show_custom_message('Error', f'Failed to delete record\n{str(e)}', is_error = True)
+                else:
+                    new_data = dialog.get_data()
+                    try:
+                        if self.current_db.get_entry_kind() ==  EntryKind.STUDENT:
+                            self.current_db.update_record(new_data, key = key_value)
+                        else:
+                            self.current_db.update_record(new_data, key = key_value, action = ConstraintAction.Cascade)
+                        self.fetch_data()
+                        self.toast.show_message('row updated')
+                    except Exception as e:
+                        self.show_custom_message('Error', f'Failed to update record\n{str(e)}', is_error = True)
+        else:
+            dialog = EntryDialog(self.current_db, mode = EntryDialogKind.INFO, record = record, parent = self)    
+            dialog.exec()
 
     def open_add_dialog(self):
-        dialog = EntryDialog(self.current_db, record = None, parent = self)
+        dialog = EntryDialog(self.current_db, mode = EntryDialogKind.ADD, parent = self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_data = dialog.get_data()
             try:

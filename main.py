@@ -6,9 +6,7 @@ from src.view.ui.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
-    print('before initialization')
     window = MainWindow(app)
-    print('initialization done')
 
     window.show()
     ret = app.exec()

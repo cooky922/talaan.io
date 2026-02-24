@@ -36,10 +36,7 @@ class MainWindow(QMainWindow):
         self.container = QStackedWidget()
         self.setCentralWidget(self.container)
 
-        print('initializing login page')
         self.login_view = LoginView()
-
-        print('initializing working page')
         self.working_view = WorkingView()
 
         self.container.addWidget(self.login_view)

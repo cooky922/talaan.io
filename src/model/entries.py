@@ -110,7 +110,7 @@ class StudentEntry:
                     raise ValidationError(EntryKind.STUDENT,
                                           StudentEntry.FieldKind.GENDER,
                                           ValidationErrorKind.INVALID_FORMAT,
-                                          'The given gender is not a valid option')
+                                          'Not a valid option')
                 
     @staticmethod
     def validate_entry(entry : dict[str, str], requires_all = False, program_directory = None):
