@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -10,7 +11,7 @@ from src.model.entries import *
 class ConstraintAction(Enum):
     Cascade  = 0 # automatically updates/deletes related records when the referenced record is updated/deleted
     SetNull  = 1 # sets the value to null (or a default) when the related record is deleted/updated
-    Restrict = 2 # prevents the change and raises an error    
+    Restrict = 2 # prevents the change and raises an error
 
 @dataclass
 class Sorted:
@@ -254,9 +255,15 @@ class GenericDatabase:
             self.df.to_csv(self.file_path, index=False)
             self.modified = False
 
+def _get_data_dir() -> Path:
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).parent / 'data'
+    else:
+        return Path(__file__).parent.parent.parent / 'data'
+
 # Handles and stores student records
 class StudentDirectory:
-    _path = Path(__file__).parent.parent.parent / 'data' / 'students.csv'
+    _path = _get_data_dir() / 'students.csv'
     _db   = GenericDatabase(_path, primary_key = 'id')
 
     @staticmethod
@@ -328,7 +335,7 @@ class StudentDirectory:
 
 # Handles and stores program records
 class ProgramDirectory:
-    _path = Path(__file__).parent.parent.parent / 'data' / 'programs.csv'
+    _path = _get_data_dir() / 'programs.csv'
     _db   = GenericDatabase(_path, primary_key = 'program_code')
 
     @staticmethod
@@ -437,7 +444,7 @@ class ProgramDirectory:
 
 # Handles and stores college records
 class CollegeDirectory:
-    _path = Path(__file__).parent.parent.parent / 'data' / 'colleges.csv'
+    _path = _get_data_dir() / 'colleges.csv'
     _db   = GenericDatabase(_path, primary_key = 'college_code')
 
     @staticmethod
