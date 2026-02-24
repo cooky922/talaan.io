@@ -157,7 +157,7 @@ class Styles:
     def header():
         back_color = Constants.HEADER_COLOR
         return f"""
-            #Header {{
+            #MainHeader {{
                 background-color: {Constants.HEADER_COLOR};
                 padding: 20px;
                 border-bottom: 1px solid #aebb76;
@@ -268,7 +268,7 @@ class Styles:
     """
 
     @staticmethod
-    def pagination_control():
+    def pagination_area():
         return f"""
             QPushButton#PageButton {{
                 background-color: transparent;
@@ -306,6 +306,36 @@ class Styles:
             QPushButton#NavArrow:disabled {{
                 color: #cccccc;
             }}
+        """
+    
+    @staticmethod 
+    def search_filter():
+        return """
+            QComboBox {
+                border: 1px solid #CCCCCC;
+                border-radius: 15px;
+                background-color: white;
+                color: #555555;
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+            QComboBox:hover { border: 1px solid #8fae44; }
+            QComboBox::drop-down { 
+                subcontrol-origin: padding; 
+                subcontrol-position: top right; 
+                width: 20px; 
+                border-left: none; 
+            }
+            QComboBox::down-arrow { image: none; } /* Hide default arrow */
+            QComboBox QAbstractItemView {
+                background-color: white; color: #333333; border: 1px solid #CCCCCC;
+                selection-background-color: #f0f4e6; selection-color: #333333; outline: none;
+                border-radius: 15px;
+            }
+            QComboBox QAbstractItemView::item:selected, QComboBox QAbstractItemView::item:hover {
+                background-color: #f0f4e6;
+                color: #333333;
+            }
         """
     
     @staticmethod

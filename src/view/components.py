@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QStyledItemDelegate,
@@ -23,7 +24,7 @@ from PyQt6.QtCore import (
     QParallelAnimationGroup,
     QPoint,
     QPropertyAnimation,
-    QTimer
+    QTimer,
 )
 from PyQt6.QtGui import QIcon, QColor, QPen, QPainter, QCursor
 
@@ -92,7 +93,7 @@ class ToggleBox(QWidget):
 class Card(QWidget):
     def __init__(self, id_name, size : QSize):
         super().__init__()
-        if id_name == 'TableCard':
+        if id_name == 'MainBody':
             self.setMinimumSize(size)
         else:
             self.setFixedSize(size)
@@ -194,6 +195,89 @@ class NoIconDelegate(QStyledItemDelegate):
         super().initStyleOption(option, index)
         option.icon = QIcon() 
         option.decorationSize = QSize(0, 0)
+
+class YearStepper(QLineEdit):
+    def __init__(self, min_val = 1, max_val = 5, parent = None):
+        super().__init__(str(min_val), parent)
+        self.min_val = min_val
+        self.max_val = max_val
+        
+        self.setReadOnly(True)
+        self.setTextMargins(0, 0, 0, 0)
+        
+        self.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #CCCCCC;
+                border-radius: 10px;
+                background-color: white;
+                color: #333333;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            QLineEdit:hover { border: 1px solid #8fae44; }
+            QLineEdit:focus { border: 1.5px solid #8fae44; background-color: #fcfff5; }
+        """)
+        
+        # 2. THE FLOATING BUTTON CONTAINER
+        # By passing 'self' as the parent, this widget lives INSIDE the QLineEdit
+        self.btn_container = QWidget(self)
+        self.btn_container.setFixedSize(20, 26) 
+        
+        btn_layout = QVBoxLayout(self.btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(0) # Zero gap between + and -
+        
+        # Transparent buttons so they blend beautifully into the white input field
+        btn_style = """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                font-size: 13px;
+                font-weight: bold;
+                color: #888888;
+            }
+            QPushButton:hover { color: #8fae44; background-color: #f0f4e6; border-radius: 2px;}
+            QPushButton:pressed { background-color: #e4ebcc; }
+        """
+        
+        self.btn_plus = QPushButton('+')
+        self.btn_plus.setFixedSize(20, 13)
+        self.btn_plus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_plus.setStyleSheet(btn_style)
+        self.btn_plus.clicked.connect(self.increment)
+        
+        self.btn_minus = QPushButton('-')
+        self.btn_minus.setFixedSize(20, 13)
+        self.btn_minus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_minus.setStyleSheet(btn_style)
+        self.btn_minus.clicked.connect(self.decrement)
+        
+        btn_layout.addWidget(self.btn_plus)
+        btn_layout.addWidget(self.btn_minus)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        rect = self.rect()
+        # Move it 2 pixels away from the right edge, perfectly centered vertically
+        self.btn_container.move(
+            rect.width() - self.btn_container.width() - 2, 
+            (rect.height() - self.btn_container.height()) // 2
+        )
+
+    def increment(self):
+        current = int(self.text() or self.min_val)
+        if current < self.max_val:
+            self.setText(str(current + 1))
+
+    def decrement(self):
+        current = int(self.text() or self.min_val)
+        if current > self.min_val:
+            self.setText(str(current - 1))
+            
+    def setText(self, text):
+        if text and str(text).isdigit():
+            val = max(self.min_val, min(self.max_val, int(text)))
+            super().setText(str(val))
 
 class SearchableComboBox(QComboBox):
     def __init__(self, items, placeholder=""):

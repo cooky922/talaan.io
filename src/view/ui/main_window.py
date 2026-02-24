@@ -6,10 +6,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QIcon
 
+from src.model.role import UserRole
 from src.utils.font_loader import FontLoader
 from src.utils.icon_loader import IconLoader
-from src.view.ui.login_page import UserRole, LoginPage
-from src.view.ui.working_page import WorkingPage
+from src.view.ui.login_view import LoginView
+from src.view.ui.working_view import WorkingView
 
 class MainWindow(QMainWindow):
     def __init__(self, app):
@@ -22,7 +23,6 @@ class MainWindow(QMainWindow):
           | Qt.WindowType.WindowMinimizeButtonHint
         )
         self.setMinimumSize(750, 450)
-        # self.setFixedSize(750, 450)
         self.setWindowTitle('talaan.io - Simple Student Information System')
         icon_path = Path(__file__).parent.parent.parent.parent / 'assets' / 'images' / 'icons' / 'app-logo.ico'
         self.setWindowIcon(QIcon(str(icon_path)))
@@ -33,27 +33,27 @@ class MainWindow(QMainWindow):
         IconLoader.load()
 
         # Structure
-        self.view = QStackedWidget()
-        self.setCentralWidget(self.view)
+        self.container = QStackedWidget()
+        self.setCentralWidget(self.container)
 
         print('initializing login page')
-        self.login_page = LoginPage()
+        self.login_view = LoginView()
 
         print('initializing working page')
-        self.working_page = WorkingPage()
+        self.working_view = WorkingView()
 
-        self.view.addWidget(self.login_page)
-        self.view.addWidget(self.working_page)
+        self.container.addWidget(self.login_view)
+        self.container.addWidget(self.working_view)
 
-        self.login_page.login_signal.connect(self.on_login)
-        self.working_page.logout_signal.connect(self.on_logout)
+        self.login_view.login_signal.connect(self.on_login)
+        self.working_view.logout_signal.connect(self.on_logout)
 
     @pyqtSlot(UserRole)
     def on_login(self, role : UserRole):
-        self.working_page.set_role(role)
-        self.view.setCurrentIndex(1)
+        self.working_view.set_role(role)
+        self.container.setCurrentIndex(1)
 
     @pyqtSlot()
     def on_logout(self):
-        self.working_page.set_default()
-        self.view.setCurrentIndex(0)
+        self.working_view.set_default()
+        self.container.setCurrentIndex(0)

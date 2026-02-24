@@ -14,14 +14,10 @@ from PyQt6.QtCore import (
 
 from src.utils.constants import Constants
 from src.utils.styles import Styles
-
+from src.model.role import UserRole
 from src.view.components import TitleLabel, InfoLabel, ToggleBox, Card
 
-class UserRole(Enum):
-    VIEWER = 'Viewer'
-    ADMIN = 'Admin'
-
-class UserRoleToggleBox(ToggleBox):
+class RoleToggleArea(ToggleBox):
     def __init__(self):
         super().__init__(['Viewer', 'Admin'])
 
@@ -34,9 +30,9 @@ class UserRoleToggleBox(ToggleBox):
         else:
             return None
 
-class LoginCard(Card):
+class LoginForm(Card):
     def __init__(self, signal):
-        super().__init__('LoginCard', size = QSize(250, 225))
+        super().__init__('LoginForm', size = QSize(250, 225))
         self.login_signal = signal
 
         login_layout = QVBoxLayout()
@@ -44,7 +40,7 @@ class LoginCard(Card):
         login_layout.setContentsMargins(20, 20, 20, 20)
         self.setLayout(login_layout)
 
-        self.role_toggle_box = UserRoleToggleBox()
+        self.role_toggle_area = RoleToggleArea()
 
         self.login_button = QPushButton('Login')
         self.login_button.setStyleSheet(Styles.action_button(back_color = Constants.LOGIN_BUTTON_COLOR))
@@ -52,23 +48,23 @@ class LoginCard(Card):
         self.login_button.clicked.connect(self.handle_login)
 
         # Layout
-        login_layout.addWidget(TitleLabel('Select a Role', 24), alignment=Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop)
-        login_layout.addWidget(self.role_toggle_box, alignment=Qt.AlignmentFlag.AlignCenter)
+        login_layout.addWidget(TitleLabel('Select a Role', 24), alignment = Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop)
+        login_layout.addWidget(self.role_toggle_area, alignment = Qt.AlignmentFlag.AlignCenter)
         login_layout.addStretch()
         login_layout.addWidget(self.login_button)
 
     def handle_login(self):
-        selected_role = self.role_toggle_box.get_role()
+        selected_role = self.role_toggle_area.get_role()
         self.login_signal.emit(selected_role)
 
-class LoginPage(QWidget):
+class LoginView(QWidget):
     login_signal = pyqtSignal(UserRole)
 
     def __init__(self):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setObjectName('LoginPage')
-        self.setStyleSheet(Styles.page('LoginPage'))
+        self.setObjectName('LoginView')
+        self.setStyleSheet(Styles.page('LoginView'))
 
         # Layout 
         layout = QVBoxLayout()
@@ -82,13 +78,13 @@ class LoginPage(QWidget):
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Login Card
-        self.login_card = LoginCard(self.login_signal)
+        self.login_card = LoginForm(self.login_signal)
 
         # Structure 
         layout.addStretch()
-        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title, alignment = Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(desc)
         layout.addSpacing(20)
-        layout.addWidget(self.login_card, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.login_card, alignment = Qt.AlignmentFlag.AlignCenter)
         layout.addSpacing(20)
         layout.addStretch()
