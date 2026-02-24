@@ -74,6 +74,8 @@ class EntryDialog(QDialog):
         self.populate_data()
 
         self.action_button.setEnabled(False)
+        self.action_button.setStyleSheet(Styles.action_button(back_color = '#f0f0f0', text_color='#aaaaaa', font_size = 11, bordered=True))
+        self.action_button.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -129,6 +131,8 @@ class EntryDialog(QDialog):
 
                 input_widget.setStyleSheet(input_widget.styleSheet() + override_css)
                 input_widget.setCursor(Qt.CursorShape.ForbiddenCursor)
+
+            input_widget.setProperty('default_style', input_widget.styleSheet())
 
             field_layout.addWidget(input_widget)
             self.inputs[col_name] = input_widget
@@ -203,16 +207,15 @@ class EntryDialog(QDialog):
         """
 
         error_state = """
-            [error="true"] { 
-                border: 1px solid #ff4c4c !important; 
-                background-color: #fff0f0 !important; 
+            *[error="true"] { 
+                border: 1px solid #ff4c4c !important;
+                background-color: #fff0f0 !important;
             }
         """
 
         # Notice how we completely killed the down-arrow image here!
         combo_style = f"""
             QComboBox {{ {base_style} padding: 6px 10px; }}
-            QComboBox{error_state}
             QComboBox{interactive_states}
             QComboBox::drop-down {{
                 subcontrol-origin: padding; subcontrol-position: top right; width: 30px; border-left: none;
@@ -234,6 +237,7 @@ class EntryDialog(QDialog):
             QLineEdit::placeholder {{ color: #bbbbbb; }}
 
             {Styles.combobox_dropdown()}
+            {error_state}
         """
 
         placeholder = f'Enter {label_text.lower()}'
@@ -259,9 +263,9 @@ class EntryDialog(QDialog):
                 le.setPlaceholderText(placeholder)
                 le_style = f"""
                     QLineEdit {{ {base_style} padding: 6px 10px; }} 
-                    QLineEdit{error_state}
                     QLineEdit{interactive_states} 
                     QLineEdit::placeholder {{ color: #bbbbbb; }}
+                    {error_state}
                 """
                 le.setStyleSheet(le_style)
                 return le
@@ -366,9 +370,15 @@ class EntryDialog(QDialog):
         primary_key = self.current_db.get_primary_key()
 
         for col_name, widget in self.inputs.items():
-            widget.setProperty('error', False)
+            widget.setProperty('error', "false")
             widget.style().unpolish(widget)
             widget.style().polish(widget)
+
+            if isinstance(widget, QComboBox) and widget.isEditable():
+                widget.lineEdit().setProperty('error', "false")
+                widget.lineEdit().style().unpolish(widget.lineEdit())
+                widget.lineEdit().style().polish(widget.lineEdit())
+
             if col_name in self.error_labels:
                 self.error_labels[col_name].setText('')
 
@@ -376,10 +386,16 @@ class EntryDialog(QDialog):
             nonlocal is_valid
             is_valid = False
             widget = self.inputs[col]
-            widget.setProperty('error', True)
+
+            widget.setProperty('error', "true")
             widget.style().unpolish(widget)
             widget.style().polish(widget)
             
+            if isinstance(widget, QComboBox) and widget.isEditable():
+                widget.lineEdit().setProperty('error', "true")
+                widget.lineEdit().style().unpolish(widget.lineEdit())
+                widget.lineEdit().style().polish(widget.lineEdit())
+
             self.error_labels[col].setText(msg)
 
         for col_name, val in data.items():
@@ -408,11 +424,9 @@ class EntryDialog(QDialog):
             if primary_key is not None and col_name == primary_key:
                 try:
                     # add 
-                    if not self.is_edit_mode:
-                        self.current_db._db.validate_add_record(data)
-                    # edit
-                    else:
-                        self.current_db._db.validate_update_record(data, key = data[primary_key])
+                    if self.is_edit_mode and data[primary_key] == self.record[primary_key]:
+                        continue
+                    self.current_db._db.validate_add_record(data)
                 except DatabaseError as e:
                     set_error(col_name, e.message)
 
@@ -421,6 +435,5 @@ class EntryDialog(QDialog):
             self.action_button.setStyleSheet(Styles.action_button(back_color = Constants.ACTIVE_BUTTON_COLOR, font_size = 11))
             self.action_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         else:
-            # Grayed out, disabled look
             self.action_button.setStyleSheet(Styles.action_button(back_color = '#f0f0f0', text_color='#aaaaaa', font_size = 11, bordered=True))
             self.action_button.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
